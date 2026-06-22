@@ -1,0 +1,17 @@
+# ── 垃圾 / 暫存 ──
+_trash/
+__pycache__/
+*.pyc
+*.tmp
+*.log
+.DS_Store
+
+# ── 內部文件：不進公開 repo（產品本身不需要）──
+BLUEPRINT.md
+COMPLIANCE_AUDIT.md
+DEPLOY.md
+_council_raw*.json
+
+# 會公開的（保留、不要 ignore）：
+#   site/  compute.py  fetch_market.py  data/market/  requirements.txt
+#   verify_math.py  .github/workflows/daily.yml

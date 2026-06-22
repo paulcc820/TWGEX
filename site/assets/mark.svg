@@ -1,0 +1,6 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="TWGEX">
+  <title>TWGEX γ mark</title>
+  <!-- 上線可將 γ outline 成 path 以脫離字體依賴；目前用 serif 字族 fallback -->
+  <rect x="3" y="3" width="58" height="58" rx="12" fill="none" stroke="#1A1A18" stroke-width="3"/>
+  <text x="32" y="45" text-anchor="middle" font-family="Newsreader, Georgia, 'Times New Roman', serif" font-size="40" font-weight="500" fill="#1A1A18">γ</text>
+</svg>

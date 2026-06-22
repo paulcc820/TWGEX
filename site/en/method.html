@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TWGEX Methodology · Indicator definitions</title>
+<meta name="description" content="What each TWGEX indicator measures and how it is computed: GEX, gamma center, volume profile, smart-money direction, retail heat, market temperature, TWVIX. Public-data observation, not investment advice.">
+<meta name="theme-color" content="#F7F6F3">
+<link rel="canonical" href="https://twgex.com/en/method.html">
+<link rel="alternate" hreflang="zh-Hant" href="https://twgex.com/method.html">
+<link rel="alternate" hreflang="en" href="https://twgex.com/en/method.html">
+<link rel="alternate" hreflang="x-default" href="https://twgex.com/method.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#F7F6F3;--surface:#FFFFFF;--border:#E4E2DC;--ink:#1A1A18;--muted:#6E6B63;--faint:#86837B;
+    --serif:'Newsreader',Georgia,serif;--mono:'JetBrains Mono',ui-monospace,monospace;
+    --sans:'Helvetica Neue',Arial,sans-serif;}
+  *{box-sizing:border-box;} html,body{margin:0;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.7;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:680px;margin:0 auto;padding:28px 24px 56px;}
+  .mono{font-family:var(--mono);} a{color:inherit;text-decoration:none;}
+  header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:30px;gap:14px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .gbox{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border:2px solid var(--ink);border-radius:9px;flex-shrink:0;}
+  .gbox span{font-family:var(--serif);font-size:24px;font-weight:500;line-height:1;}
+  .brand-name{font-family:var(--serif);font-size:24px;font-weight:600;line-height:1;}
+  .brand-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+  nav{display:flex;gap:16px;font-size:13px;color:var(--muted);}
+  nav a.active{color:var(--ink);border-bottom:1px solid var(--ink);padding-bottom:2px;}
+  .lang{font-family:var(--mono);font-size:12px;color:var(--faint);}
+  .lang a.on{color:var(--ink);}
+  h1{font-family:var(--serif);font-size:28px;font-weight:500;margin:0 0 6px;}
+  .lead{font-size:15px;color:var(--muted);margin:0 0 12px;}
+  dl{margin:0;}
+  dt{font-family:var(--serif);font-size:18px;font-weight:500;margin-top:24px;padding-top:18px;border-top:1px solid var(--border);}
+  dd{margin:8px 0 0;font-size:15px;color:#2A2722;}
+  .note{font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-top:30px;}
+  .note p{margin:0 0 6px;} .note p:last-child{margin:0;} .k{color:var(--ink);}
+  .adslot{max-width:728px;margin:30px auto 0;border:1px dashed var(--border);border-radius:8px;min-height:90px;display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:12px;}
+  footer{border-top:1px solid var(--border);padding-top:16px;margin-top:30px;display:flex;justify-content:space-between;font-size:11px;color:var(--faint);flex-wrap:wrap;gap:8px;}
+  @media (max-width:560px){.wrap{padding:22px 16px 44px;} nav{font-size:12px;gap:12px;}}
+  /* fixed bottom anchor ad */
+  body{padding-bottom:84px;}
+  #anchor-ad{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;justify-content:center;background:rgba(247,246,243,.94);backdrop-filter:saturate(1.05) blur(8px);-webkit-backdrop-filter:saturate(1.05) blur(8px);border-top:1px solid var(--border);padding:9px 12px;}
+  #anchor-ad .inner{position:relative;width:100%;max-width:728px;min-height:50px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--border);border-radius:6px;background:var(--surface);color:var(--faint);font-size:12px;}
+  #anchor-ad .x{position:absolute;top:-9px;right:-9px;width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:13px;line-height:18px;text-align:center;cursor:pointer;padding:0;}
+  @media (max-width:560px){body{padding-bottom:74px;} #anchor-ad{padding:7px 8px;} #anchor-ad .inner{min-height:44px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="gbox"><span>γ</span></span>
+      <div><div class="brand-name">TWGEX</div><div class="brand-sub">Taiwan market structure · weather watch</div></div>
+    </div>
+    <nav>
+      <a href="./">Structure</a>
+      <a href="./fear.html">Temperature</a>
+      <a href="./method.html" class="active">Methodology</a>
+      <a href="./about.html">About</a>
+      <span class="lang"><a href="../method.html">中</a> <a class="on">EN</a> 日 한</span>
+    </nav>
+  </header>
+
+  <h1>Indicator definitions &amp; methodology</h1>
+  <p class="lead">What each indicator measures and how it is computed. All figures are an organisation and computation of public market data (TWSE / TAIFEX). Not investment advice.</p>
+
+  <dl>
+    <dt>Smart-money direction</dt>
+    <dd>The combined net position (spot + futures) of the three institutional groups — foreign investors, investment trusts, and dealers — ranked against its own 252-trading-day history and mapped to 1–10. It can be computed for foreign investors, domestic institutions (trusts + dealers), or all three combined.</dd>
+
+    <dt>Retail heat</dt>
+    <dd>The average of three 252-day percentile ranks — retail spot absorption, change in margin balance, and overall turnover — mapped to 0–10.</dd>
+
+    <dt>Market temperature</dt>
+    <dd>The average of smart-money direction and retail heat, mapped to 0–10. Shown either as a daily gauge or a six-month trend.</dd>
+
+    <dt>GEX · Gamma exposure</dt>
+    <dd>The total gamma exposure that option market-makers must hedge to stay position-neutral, expressed as the NT$ amount adjusted per one-point index move (millions). Aggregated strike by strike as Black-Scholes gamma × open interest; implied volatility is solved from settlement prices.</dd>
+
+    <dt>Gamma center (pinning)</dt>
+    <dd>The strike band where gamma exposure is most concentrated on a given day.</dd>
+
+    <dt>Volume structure</dt>
+    <dd>Vertical volume is daily turnover over time; horizontal volume (volume profile) is the distribution of traded volume across price, whose thickest band is the value area.</dd>
+
+    <dt>TWVIX · volatility (HV21)</dt>
+    <dd>The annualised standard deviation of the index's daily returns over the last 21 trading days.</dd>
+  </dl>
+
+  <div class="note">
+    <p>· The sign of dealers' gamma position is currently computed from a common assumption and <span class="k">remains to be verified against Taiwan data</span>; its polarity is indicative only.</p>
+    <p>· TWVIX is a self-computed volatility proxy (HV21), <span class="k">not the official TAIFEX volatility index</span>.</p>
+    <p>· GEX history begins in 2024, shorter than the index.</p>
+    <p>· All content is an organisation and computation of public market data; it <span class="k">contains no analysis or advice on individual securities and is not investment advice</span>. See <a href="./about.html" style="border-bottom:1px solid var(--ink);">About</a>.</p>
+  </div>
+
+  <div class="adslot">Ad · pending AdSense</div>
+
+  <footer>
+    <span class="mono">Source · Taiwan Stock Exchange (TWSE), Taiwan Futures Exchange (TAIFEX)</span>
+    <span>Market-structure observation · not investment advice</span>
+  </footer>
+</div>
+<div id="anchor-ad" role="complementary" aria-label="Advertisement"><div class="inner"><button class="x" aria-label="Close ad" onclick="document.getElementById('anchor-ad').remove();document.body.style.paddingBottom='0';">×</button>Ad · pending AdSense</div></div>
+</body>
+</html>

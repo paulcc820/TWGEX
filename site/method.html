@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TWGEX 說明 · 指標定義與計算</title>
+<meta name="description" content="TWGEX 各指標的定義與計算方式：GEX、Gamma 重心、量價結構、聰明錢方向、散戶熱度、市場溫度、台VIX。公開資料之整理，非投資建議。">
+<meta name="theme-color" content="#F7F6F3">
+<link rel="canonical" href="https://twgex.com/method.html">
+<link rel="alternate" hreflang="zh-Hant" href="https://twgex.com/method.html">
+<link rel="alternate" hreflang="en" href="https://twgex.com/en/method.html">
+<link rel="alternate" hreflang="x-default" href="https://twgex.com/method.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#F7F6F3;--surface:#FFFFFF;--border:#E4E2DC;--ink:#1A1A18;--muted:#6E6B63;--faint:#86837B;
+    --serif:'Newsreader',Georgia,serif;--mono:'JetBrains Mono',ui-monospace,monospace;
+    --sans:'Helvetica Neue',Arial,'PingFang TC','Microsoft JhengHei',sans-serif;}
+  *{box-sizing:border-box;} html,body{margin:0;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.75;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:680px;margin:0 auto;padding:28px 24px 56px;}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;} a{color:inherit;text-decoration:none;}
+  header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:30px;gap:14px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .gbox{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border:2px solid var(--ink);border-radius:9px;flex-shrink:0;}
+  .gbox span{font-family:var(--serif);font-size:24px;font-weight:500;line-height:1;}
+  .brand-name{font-family:var(--serif);font-size:24px;font-weight:600;line-height:1;}
+  .brand-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+  nav{display:flex;gap:18px;font-size:14px;color:var(--muted);}
+  nav a.active{color:var(--ink);border-bottom:1px solid var(--ink);padding-bottom:2px;}
+  .lang{font-family:var(--mono);font-size:12px;color:var(--faint);}
+  h1{font-family:var(--serif);font-size:28px;font-weight:500;margin:0 0 6px;}
+  .lead{font-size:15px;color:var(--muted);margin:0 0 12px;}
+  dl{margin:0;}
+  dt{font-family:var(--serif);font-size:18px;font-weight:500;margin-top:24px;padding-top:18px;border-top:1px solid var(--border);}
+  dt .en{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:0.04em;margin-left:8px;}
+  dd{margin:8px 0 0;font-size:15px;color:#2A2722;}
+  .note{font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-top:30px;}
+  .note p{margin:0 0 6px;} .note p:last-child{margin:0;} .k{color:var(--ink);}
+  footer{border-top:1px solid var(--border);padding-top:16px;margin-top:30px;display:flex;justify-content:space-between;font-size:11px;color:var(--faint);flex-wrap:wrap;gap:8px;}
+  @media (max-width:560px){.wrap{padding:22px 16px 44px;} nav{font-size:13px;gap:14px;}}
+  /* 固定底部錨定廣告 anchor ad（隨頁面固定於底部） */
+  body{padding-bottom:84px;}
+  #anchor-ad{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;justify-content:center;background:rgba(247,246,243,.94);backdrop-filter:saturate(1.05) blur(8px);-webkit-backdrop-filter:saturate(1.05) blur(8px);border-top:1px solid var(--border);padding:9px 12px;}
+  #anchor-ad .inner{position:relative;width:100%;max-width:728px;min-height:50px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--border);border-radius:6px;background:var(--surface);color:var(--faint);font-size:12px;}
+  #anchor-ad .x{position:absolute;top:-9px;right:-9px;width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:13px;line-height:18px;text-align:center;cursor:pointer;padding:0;}
+  @media (max-width:560px){body{padding-bottom:74px;} #anchor-ad{padding:7px 8px;} #anchor-ad .inner{min-height:44px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="gbox"><span>γ</span></span>
+      <div><div class="brand-name">TWGEX</div><div class="brand-sub">台股市場結構 · 市場天氣觀測</div></div>
+    </div>
+    <nav>
+      <a href="./">大盤結構</a>
+      <a href="./fear.html">市場溫度</a>
+      <a href="./method.html" class="active">說明</a>
+      <a href="./about.html">關於</a>
+      <span class="lang">中 <a href="./en/method.html" style="color:var(--ink)">EN</a> 日 한</span>
+    </nav>
+  </header>
+
+  <h1>指標定義與計算</h1>
+  <p class="lead">各指標衡量什麼、怎麼算。皆為公開市場資料（TWSE／TAIFEX）之整理與計算，非投資建議。</p>
+
+  <dl>
+    <dt>聰明錢方向<span class="en">smart money</span></dt>
+    <dd>三大法人（外資、投信、自營）「現貨加期貨」的合計淨部位，與自身 252 個交易日歷史相比的相對分位，換算為 1 至 10。可分別計算外資、內資（投信＋自營）或三者加總。</dd>
+
+    <dt>散戶熱度<span class="en">retail heat</span></dt>
+    <dd>散戶現貨承接壓力、融資餘額變化、整體成交量能三項的 252 日相對分位之平均，換算為 0 至 10。</dd>
+
+    <dt>市場溫度<span class="en">temperature</span></dt>
+    <dd>「聰明錢方向」與「散戶熱度」兩項的平均，換算為 0 至 10。可看當日數值（碼錶）或近半年走勢。</dd>
+
+    <dt>GEX · Gamma 暴露<span class="en">gamma exposure</span></dt>
+    <dd>選擇權造市商為維持部位中性而需對沖的 Gamma 暴露總量，以「指數每移動 1 點、需調整之部位金額」計（百萬元）。逐履約價以 Black-Scholes gamma × 未平倉量加總；隱含波動率由結算價反推。</dd>
+
+    <dt>Gamma 重心<span class="en">pinning</span></dt>
+    <dd>當日 Gamma 暴露最集中的履約價帶。</dd>
+
+    <dt>量價結構<span class="en">volume profile</span></dt>
+    <dd>垂直量為時間軸上的每日成交金額；橫向量（Volume Profile）為成交量在價格軸上的分布，其中成交最密集的價位帶為「價值區」。</dd>
+
+    <dt>台VIX · 波動率<span class="en">HV21</span></dt>
+    <dd>加權指數近 21 個交易日報酬率的年化標準差。</dd>
+  </dl>
+
+  <div class="note">
+    <p>· GEX 的造市商部位<span class="k">方向（正負號）目前以通用假設計算，仍待以台股實際資料驗證</span>；正負方向僅供參考。</p>
+    <p>· 台VIX 為自行計算之波動率近似值（HV21），<span class="k">非台灣期交所官方波動率指數</span>。</p>
+    <p>· GEX 歷史資料自 2024 年起，較大盤指數短。</p>
+    <p>· 本站內容為公開市場資料之整理與計算，<span class="k">不含個別股票之分析或建議，不構成投資建議</span>。詳見 <a href="./about.html" style="border-bottom:1px solid var(--ink);">關於</a>。</p>
+  </div>
+
+  <div style="max-width:728px;margin:30px auto 0;border:1px dashed #E4E2DC;border-radius:8px;min-height:90px;display:flex;align-items:center;justify-content:center;color:#86837B;font-size:12px;">廣告 · 待 AdSense 過審</div>
+  <footer>
+    <span class="mono">資料來源 · 臺灣證券交易所(TWSE)、臺灣期貨交易所(TAIFEX)</span>
+    <span>市場結構觀測 · 非投資建議</span>
+  </footer>
+</div>
+<div id="anchor-ad" role="complementary" aria-label="廣告"><div class="inner"><button class="x" aria-label="關閉廣告" onclick="document.getElementById('anchor-ad').remove();document.body.style.paddingBottom='0';">×</button>廣告 · 待 AdSense 過審</div></div>
+</body>
+</html>

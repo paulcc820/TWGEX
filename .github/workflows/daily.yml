@@ -1,0 +1,60 @@
+name: TWGEX daily refresh
+
+# 每天盤後在 GitHub 雲端自動：抓最新公開資料 → 算 data.json → 發布到 Pages。
+# 你的電腦不用開機。資料源全是 TWSE/TAIFEX/FinMind 公開端點，匿名即可，無需任何金鑰。
+
+on:
+  schedule:
+    - cron: "30 10 * * 1-5"   # 每週一~五 UTC 10:30＝台灣 18:30（盤後資料已就緒）
+  workflow_dispatch: {}        # 也可在 Actions 頁面手動點「Run workflow」
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Checkout（含已提交的種子資料）
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: 抓最新市場資料（增量：種子最後日期 → 今天）
+        run: python fetch_market.py
+        env:
+          # 選配：到 Settings → Secrets → Actions 設 FINMIND_TOKEN 可提高速率；沒設也能匿名跑。
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+
+      - name: 計算 data.json
+        run: python compute.py
+
+      - name: 打包 site/ 為 Pages 產物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+      - name: 發布到 GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
+
+# 設計說明（無提交回寫 = 零 repo 膨脹、且能自我修復）：
+#   每次都從「已提交的種子資料」全新開始 → 只補抓種子最後日期到今天的缺口 → 算完直接發布。
+#   不把抓回的資料 commit 回 repo，所以 git 歷史不會每天長大；某天某來源臨時失敗也不會污染種子，
+#   隔天重跑自動補回。缺點：種子若很久沒更新，每天要補抓的區間會變長（抓公開資料便宜，影響不大）。
+#   想讓每日跑得更快 → 偶爾在本機跑 `python fetch_market.py` 後把 data/ 重新 commit，推進種子即可。

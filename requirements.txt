@@ -1,0 +1,5 @@
+# TWGEX 雲端管線相依（GitHub Actions 用）
+pandas
+numpy
+scipy
+requests

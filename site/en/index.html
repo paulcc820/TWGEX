@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TWGEX · Taiwan market structure: TAIEX × GEX × smart money</title>
+<meta name="description" content="Taiwan market-structure observation: the index, volume structure, Taiwan GEX, and institutional smart-money direction on one timeline. Updated daily after close. Market-structure observation, not investment advice.">
+<meta property="og:title" content="TWGEX · Taiwan market structure">
+<meta property="og:description" content="Taiwan index × GEX × smart-money direction, historical time series. Market-structure observation, not investment advice.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="en_US">
+<meta name="theme-color" content="#F7F6F3">
+<link rel="canonical" href="https://twgex.com/en/">
+<link rel="alternate" hreflang="zh-Hant" href="https://twgex.com/">
+<link rel="alternate" hreflang="en" href="https://twgex.com/en/">
+<link rel="alternate" hreflang="x-default" href="https://twgex.com/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  :root{
+    --bg:#F7F6F3; --surface:#FFFFFF; --border:#E4E2DC; --ink:#1A1A18; --muted:#6E6B63; --faint:#86837B;
+    --grid:#E8E4DE; --red:#9F2F2D; --green:#346538; --blue:#1F6C9F; --amber:#956400;
+    --serif:'Newsreader',Georgia,serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+    --sans:'Helvetica Neue',Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:920px;margin:0 auto;padding:28px 24px 52px;}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;}
+  .lbl{font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);}
+  a{color:inherit;text-decoration:none;}
+  header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:20px;gap:14px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .gbox{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border:2px solid var(--ink);border-radius:9px;flex-shrink:0;}
+  .gbox span{font-family:var(--serif);font-size:24px;font-weight:500;line-height:1;}
+  .brand-name{font-family:var(--serif);font-size:24px;font-weight:600;line-height:1;}
+  .brand-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+  nav{display:flex;gap:16px;font-size:13px;color:var(--muted);}
+  nav a.active{color:var(--ink);border-bottom:1px solid var(--ink);padding-bottom:2px;}
+  .lang{font-family:var(--mono);font-size:12px;color:var(--faint);} .lang a.on{color:var(--ink);}
+  .h1{font-family:var(--serif);font-size:25px;font-weight:500;margin:0 0 4px;}
+  .updated{font-family:var(--mono);font-size:12px;color:var(--faint);margin-bottom:14px;}
+  .controls{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+  .tfbar,.toggles{display:flex;gap:8px;flex-wrap:wrap;}
+  .tf,.tg{font-family:var(--mono);font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+  .tf.active{border-color:var(--ink);color:var(--ink);}
+  .tg .dot{width:7px;height:7px;border-radius:50%;border:1px solid var(--faint);}
+  .tg.on{border-color:var(--ink);color:var(--ink);}
+  .tg.on .dot{background:var(--ink);border-color:var(--ink);}
+  .panelwrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 8px 4px;}
+  .panel-cap{display:flex;justify-content:space-between;align-items:baseline;padding:6px 10px 2px;}
+  .panel-cap .lbl{color:var(--muted);}
+  .badge{font-family:var(--mono);font-size:10px;letter-spacing:0.03em;background:#FBF3DB;color:var(--amber);padding:2px 7px;border-radius:4px;}
+  .gex-smooth{display:inline-flex;gap:4px;}
+  .gex-smooth button{font-family:var(--mono);font-size:10px;padding:2px 7px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;border-radius:4px;}
+  .gex-smooth button.on{border-color:var(--ink);color:var(--ink);}
+  .since-note{font-family:var(--mono);font-size:10px;color:var(--faint);padding:2px 10px 6px;}
+  .panelA{position:relative;}
+  .pa-legend{position:absolute;top:8px;left:12px;z-index:5;font-family:var(--mono);font-size:12px;color:var(--ink);background:rgba(247,246,243,0.82);padding:3px 8px;border-radius:5px;pointer-events:none;}
+  .pa-legend b{font-weight:500;}
+  #vp-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:4;}
+  a[id^="tv-attr-logo"]{display:none!important;}
+  .snap{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:18px 0 22px;}
+  .snap > div{background:var(--surface);padding:14px 18px;}
+  .snap .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:24px;font-weight:500;line-height:1;margin-top:8px;}
+  .defs{margin-bottom:26px;}
+  .def{border-top:1px solid var(--border);padding:14px 0;}
+  .def h3{font-family:var(--serif);font-size:16px;font-weight:500;margin:0 0 5px;}
+  .def p{font-size:13px;color:var(--muted);margin:0;line-height:1.65;}
+  .def .caveat{color:var(--amber);font-size:12px;margin-top:5px;}
+  .adslot{max-width:728px;margin:30px auto 0;border:1px dashed var(--border);border-radius:8px;min-height:90px;display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:12px;}
+  footer{border-top:1px solid var(--border);padding-top:16px;display:flex;justify-content:space-between;font-size:11px;color:var(--faint);flex-wrap:wrap;gap:8px;}
+  @media (max-width:560px){
+    .wrap{padding:22px 16px 40px;} nav{font-size:12px;gap:12px;}
+    .pa-legend{font-size:11px;left:8px;top:6px;padding:2px 6px;}
+    .panel-cap{flex-wrap:wrap;gap:6px;} .badge{white-space:nowrap;}
+    .gex-smooth button,.tg,.tf{font-size:11px;padding:3px 8px;}
+  }
+  /* fixed bottom anchor ad */
+  body{padding-bottom:84px;}
+  #anchor-ad{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;justify-content:center;background:rgba(247,246,243,.94);backdrop-filter:saturate(1.05) blur(8px);-webkit-backdrop-filter:saturate(1.05) blur(8px);border-top:1px solid var(--border);padding:9px 12px;}
+  #anchor-ad .inner{position:relative;width:100%;max-width:728px;min-height:50px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--border);border-radius:6px;background:var(--surface);color:var(--faint);font-size:12px;}
+  #anchor-ad .x{position:absolute;top:-9px;right:-9px;width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:13px;line-height:18px;text-align:center;cursor:pointer;padding:0;}
+  @media (max-width:560px){body{padding-bottom:74px;} #anchor-ad{padding:7px 8px;} #anchor-ad .inner{min-height:44px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="gbox"><span>γ</span></span>
+      <div><div class="brand-name">TWGEX</div><div class="brand-sub">Taiwan market structure · weather watch</div></div>
+    </div>
+    <nav>
+      <a href="./" class="active">Structure</a>
+      <a href="./fear.html">Temperature</a>
+      <a href="./method.html">Methodology</a>
+      <a href="./about.html">About</a>
+      <span class="lang"><a href="../">中</a> <a class="on">EN</a> 日 한</span>
+    </nav>
+  </header>
+
+  <h1 class="h1">Taiwan index × structural positioning</h1>
+  <div class="updated" id="updated">Updated —</div>
+
+  <div class="controls">
+    <div class="tfbar">
+      <button class="tf" data-tf="6m">6M</button>
+      <button class="tf active" data-tf="2y">2Y</button>
+      <button class="tf" data-tf="max">All</button>
+    </div>
+    <div class="toggles" id="toggles">
+      <button class="tg on" data-k="vol"><span class="dot"></span>Volume</button>
+      <button class="tg on" data-k="vp"><span class="dot"></span>Profile</button>
+      <button class="tg on" data-k="pin"><span class="dot"></span>Gamma center</button>
+      <button class="tg on" data-k="gex"><span class="dot"></span>GEX</button>
+      <button class="tg on" data-k="smart"><span class="dot"></span>Smart money</button>
+      <button class="tg on" data-k="vix"><span class="dot"></span>TWVIX</button>
+    </div>
+  </div>
+
+  <div class="panelwrap">
+    <div id="sec-taiex">
+      <div class="panel-cap"><span class="lbl">TAIEX · price &amp; volume structure</span></div>
+      <div class="panelA"><div id="panel-taiex"></div><svg id="vp-overlay"></svg><div id="panelA-legend" class="pa-legend"></div></div>
+    </div>
+    <div id="sec-gex">
+      <div class="panel-cap"><span class="lbl">Taiwan GEX · structural exposure (NT$M / pt)</span>
+        <span style="display:inline-flex;align-items:center;gap:8px;">
+          <span class="gex-smooth" id="gex-smooth"><button data-n="1">Raw</button><button data-n="5">5D</button><button class="on" data-n="10">10D</button><button data-n="20">20D</button></span>
+          <span class="badge" id="gex-badge" style="display:none;">sign unverified</span>
+        </span>
+      </div>
+      <div id="panel-gex"></div>
+      <div class="since-note" id="gex-since"></div>
+    </div>
+    <div id="sec-smart">
+      <div class="panel-cap"><span class="lbl">Smart-money direction (1 short — 10 long)</span>
+        <span class="gex-smooth" id="sm-grp"><button class="on" data-s="foreign">Foreign</button><button data-s="domestic">Domestic</button><button data-s="total">Total</button></span>
+      </div>
+      <div id="panel-smart"></div>
+    </div>
+    <div id="sec-vix">
+      <div class="panel-cap"><span class="lbl">TWVIX · volatility HV21 (%, 21-day annualised)</span></div>
+      <div id="panel-vix"></div>
+    </div>
+  </div>
+
+  <div class="snap" id="snap">
+    <div><span class="lbl">Index</span><div class="v" id="s-taiex">—</div></div>
+    <div><span class="lbl">Volume</span><div class="v" id="s-vol">—</div></div>
+    <div><span class="lbl">GEX</span><div class="v" id="s-gex">—</div></div>
+    <div><span class="lbl">Smart money</span><div class="v" id="s-smart">—</div></div>
+  </div>
+
+  <div class="defs">
+    <div class="def"><h3>GEX · structural exposure (NT$M / pt)</h3>
+      <p>The total gamma exposure option market-makers hold, expressed as the NT$ amount adjusted per one-point index move (millions). When GEX is high, market-maker hedging tends to compress index volatility; when low, hedging may amplify it. The dotted marker on Panel A is the day's gamma center — the strike band where open interest is most concentrated. Smoothing can be set to Raw (showing the expiry-week gamma cycle) or 5/10/20-day (smoothed to a structural trend).</p>
+      <p class="caveat" id="def-caveat" style="display:none;">The dealer-direction sign is pending verification against Taiwan data; its polarity is indicative only.</p></div>
+    <div class="def"><h3>Volume structure (vertical + horizontal)</h3>
+      <p>Vertical volume is daily turnover over time; horizontal volume (volume profile) is the distribution of traded volume across price, whose thickest band (the value area) is the most-traded price zone. Read alongside the gamma center, it shows where the market is anchored.</p></div>
+    <div class="def"><h3>Smart-money direction (foreign / domestic / total)</h3>
+      <p>The combined net position (spot + futures) of institutions, ranked against its own 252-trading-day history and mapped to 1 (most short) to 10 (most long). Switchable between foreign, domestic (trusts + dealers), or all three combined; a divergence between foreign and domestic reflects differing institutional positioning. A structural-bias indicator, not a trade signal.</p></div>
+  </div>
+
+  <div class="adslot">Ad · pending AdSense</div>
+  <footer>
+    <span class="mono">Source · Taiwan Stock Exchange (TWSE), Taiwan Futures Exchange (TAIFEX)</span>
+    <span>Market-structure observation · not investment advice</span>
+  </footer>
+</div>
+
+<script>
+  const THEME={bg:'#F7F6F3',text:'#2C2C2C',grid:'#E8E4DE',border:'#D4CFC8'};
+  const fmt=n=>(n==null||isNaN(n))?'—':Number(n).toLocaleString('en-US');
+  const SVGNS='http://www.w3.org/2000/svg';
+
+  function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+  function genSample(){
+    const rnd=mulberry32(42),today=new Date(),days=[];
+    let d=new Date(today.getTime()-760*864e5);
+    while(d<=today){const wd=d.getDay();if(wd!==0&&wd!==6)days.push(d.toISOString().slice(0,10));d=new Date(d.getTime()+864e5);}
+    const N=days.length,gexStart=Math.max(0,N-250),smStart=252;
+    let px=17800,sm=5.5;const taiex=[],vol=[],gex=[],pin=[],smart=[];
+    for(let i=0;i<N;i++){
+      const up=rnd()-0.46;px+=up*120;px=Math.max(15000,px);taiex.push(Math.round(px*100)/100);
+      vol.push(Math.round((280+rnd()*220)*10)/10);
+      gex.push(i<gexStart?null:Math.round(((rnd()-0.35)*20+12)*100)/100);
+      pin.push(i<gexStart?null:Math.round(px/100)*100-300);
+      sm+=(rnd()-0.5)*0.6;sm=Math.max(1,Math.min(10,sm));smart.push(i<smStart?null:Math.round(sm*10)/10);
+    }
+    return {meta:{dealer_sign_verified:false,gex_since:days[gexStart]},dates:days,taiex,taiex_turnover_bn:vol,gex_total:gex,gex_pinning:pin,smart_money:smart,hv21_proxy:days.map(()=>null)};
+  }
+
+  let D,cA,cB,cC,cD,taiexS,volS,pinS,gexSeries,smS,vixSeries,gexShown,smartShown,charts=[];
+  const ST={vol:true,vp:true,pin:true,gex:true,smart:true,vix:true};
+  function pair(dates,vals){return dates.map((t,i)=>(vals[i]==null)?{time:t}:{time:t,value:vals[i]});}
+
+  function build(d){
+    D=d;d.gex_disp=d.gex_total.map((v,i)=>(v==null)?null:Math.round(v*1000*10)/10);const LC=window.LightweightCharts;
+    if(!LC){document.getElementById('panel-taiex').textContent='Chart library failed to load';return;}
+    const common={layout:{background:{color:THEME.bg},textColor:THEME.text,fontFamily:"'JetBrains Mono',monospace"},
+      grid:{vertLines:{color:THEME.grid},horzLines:{color:THEME.grid}},
+      rightPriceScale:{borderColor:THEME.border},timeScale:{borderColor:THEME.border},
+      handleScroll:false,handleScale:false,crosshair:{mode:LC.CrosshairMode.Normal}};
+    const W=()=>document.getElementById('panel-taiex').clientWidth;
+
+    cA=LC.createChart(document.getElementById('panel-taiex'),{...common,width:W(),height:320});
+    taiexS=cA.addLineSeries({color:'#1A1A18',lineWidth:1.5,priceFormat:{type:'price',precision:0,minMove:1}});
+    taiexS.setData(pair(d.dates,d.taiex));
+    volS=cA.addHistogramSeries({color:'rgba(110,107,99,0.34)',priceScaleId:'vol',priceFormat:{type:'volume'},lastValueVisible:false,priceLineVisible:false});
+    volS.setData(d.dates.map((t,i)=>({time:t,value:d.taiex_turnover_bn?.[i]??0})));
+    cA.priceScale('vol').applyOptions({scaleMargins:{top:0.82,bottom:0}});
+    pinS=cA.addLineSeries({color:'#C2452F',lineWidth:1,lineStyle:LC.LineStyle.Dotted,priceLineVisible:false,lastValueVisible:false});
+    pinS.setData(pair(d.dates,d.gex_pinning));
+
+    cB=LC.createChart(document.getElementById('panel-gex'),{...common,width:W(),height:150});
+    gexSeries=cB.addAreaSeries({topColor:'rgba(159,47,45,0.18)',bottomColor:'rgba(159,47,45,0.02)',lineColor:'#9F2F2D',lineWidth:1,priceFormat:{type:'price',precision:1,minMove:0.1}});
+    gexSeries.setData(pair(d.dates,d.gex_total));
+    gexSeries.createPriceLine({price:0,color:'#B5B2AA',lineWidth:1,lineStyle:LC.LineStyle.Solid,axisLabelVisible:false});
+
+    cC=LC.createChart(document.getElementById('panel-smart'),{...common,width:W(),height:120});
+    smS=cC.addLineSeries({color:'#1F6C9F',lineWidth:1,priceFormat:{type:'price',precision:1,minMove:0.1}});
+    smS.setData(pair(d.dates,d.smart_foreign||d.smart_money));
+    smS.createPriceLine({price:5.5,color:'#C9C6BE',lineWidth:1,lineStyle:LC.LineStyle.Dashed,axisLabelVisible:false});
+
+    cD=LC.createChart(document.getElementById('panel-vix'),{...common,width:W(),height:120});
+    vixSeries=cD.addAreaSeries({topColor:'rgba(31,108,159,0.16)',bottomColor:'rgba(31,108,159,0.02)',lineColor:'#1F6C9F',lineWidth:1,priceFormat:{type:'price',precision:1,minMove:0.1}});
+    vixSeries.setData(pair(d.dates,(d.hv21_proxy||[]).map(v=>v==null?null:Math.round(v*1000)/10)));
+
+    charts=[cA,cB,cC,cD];
+
+    const dateIdx=new Map(d.dates.map((s,i)=>[s,i]));
+    const t2s=t=>typeof t==='string'?t:(t&&t.year?`${t.year}-${String(t.month).padStart(2,'0')}-${String(t.day).padStart(2,'0')}`:null);
+    function updateLegend(i){
+      const el=document.getElementById('panelA-legend'); if(!el)return;
+      const j=(i==null)?(d.taiex.length-1):i; const vol=d.taiex_turnover_bn[j];
+      el.innerHTML=`${d.dates[j]} · TAIEX <b>${fmt(d.taiex[j])}</b> · vol ${vol!=null?'NT$'+fmt(Math.round(vol/10))+'B':'—'}`;
+    }
+    updateLegend(null);
+    let syncing=false;
+    function sync(src,param){
+      if(syncing)return; syncing=true;
+      try{
+        if(!param||param.time===undefined){[cA,cB,cC,cD].forEach(c=>c&&c.clearCrosshairPosition());updateLegend(null);}
+        else{
+          const i=dateIdx.get(t2s(param.time));
+          if(i!=null){
+            updateLegend(i);
+            if(src!==cA&&d.taiex[i]!=null)cA.setCrosshairPosition(d.taiex[i],param.time,taiexS);
+            if(src!==cB&&gexSeries){const gv=(gexShown||d.gex_total)[i]; if(gv!=null)cB.setCrosshairPosition(gv,param.time,gexSeries);}
+            if(src!==cC&&smS){const sv=(smartShown||d.smart_money)[i]; if(sv!=null)cC.setCrosshairPosition(sv,param.time,smS);}
+            if(src!==cD&&vixSeries&&d.hv21_proxy[i]!=null)cD.setCrosshairPosition(Math.round(d.hv21_proxy[i]*1000)/10,param.time,vixSeries);
+          }
+        }
+      }catch(e){}
+      syncing=false;
+    }
+    cA.subscribeCrosshairMove(p=>sync(cA,p));
+    cB.subscribeCrosshairMove(p=>sync(cB,p));
+    cC.subscribeCrosshairMove(p=>sync(cC,p));
+    cD.subscribeCrosshairMove(p=>sync(cD,p));
+
+    cA.timeScale().subscribeVisibleLogicalRangeChange(()=>requestAnimationFrame(drawProfile));
+    window.addEventListener('resize',()=>{charts.forEach(c=>c.applyOptions({width:W()}));requestAnimationFrame(drawProfile);});
+    smoothGEX(10);
+    setSmart('foreign');
+    setTF('2y');
+  }
+
+  function drawProfile(){
+    const ov=document.getElementById('vp-overlay');ov.innerHTML='';
+    if(!D||!ST.vp||!cA||!taiexS)return;
+    const lr=cA.timeScale().getVisibleLogicalRange();if(!lr)return;
+    const i0=Math.max(0,Math.floor(lr.from)),i1=Math.min(D.dates.length-1,Math.ceil(lr.to));
+    if(i1<=i0)return;
+    let pmin=Infinity,pmax=-Infinity;
+    for(let i=i0;i<=i1;i++){const p=D.taiex[i];if(p<pmin)pmin=p;if(p>pmax)pmax=p;}
+    if(!isFinite(pmin)||pmax<=pmin)return;
+    const BINS=26,bins=new Array(BINS).fill(0);
+    for(let i=i0;i<=i1;i++){const p=D.taiex[i],v=(D.taiex_turnover_bn&&D.taiex_turnover_bn[i])||1;
+      let b=Math.floor((p-pmin)/(pmax-pmin)*BINS);b=Math.max(0,Math.min(BINS-1,b));bins[b]+=v;}
+    const maxv=Math.max(...bins);if(maxv<=0)return;
+    const cw=ov.clientWidth||document.getElementById('panel-taiex').clientWidth;
+    const scaleW=(cA.priceScale('right').width?cA.priceScale('right').width():56)||56;
+    const right=cw-scaleW-2, maxBar=Math.min(150,(cw-scaleW)*0.32);
+    const binH=(pmax-pmin)/BINS;
+    for(let b=0;b<BINS;b++){
+      if(bins[b]<=0)continue;
+      const pc=pmin+(b+0.5)*binH;
+      const y=taiexS.priceToCoordinate(pc);if(y==null)continue;
+      const w=bins[b]/maxv*maxBar, h=Math.max(2,(320/(pmax-pmin))*binH*0.86);
+      const r=document.createElementNS(SVGNS,'rect');
+      r.setAttribute('x',right-w);r.setAttribute('y',y-h/2);r.setAttribute('width',w);r.setAttribute('height',h);
+      r.setAttribute('fill','#1F6C9F');r.setAttribute('opacity', b===bins.indexOf(maxv)?'0.46':'0.28');
+      ov.appendChild(r);
+      if(b===bins.indexOf(maxv)){
+        const tx=document.createElementNS(SVGNS,'text');
+        tx.setAttribute('x',right-w-6);tx.setAttribute('y',y+3);tx.setAttribute('text-anchor','end');
+        tx.setAttribute('font-size','10');tx.setAttribute('fill','#1F6C9F');tx.setAttribute('font-family','Helvetica Neue,Arial,sans-serif');
+        tx.textContent='Value area';ov.appendChild(tx);
+      }
+    }
+  }
+
+  function smoothGEX(n){
+    const raw=D.gex_disp||D.gex_total; let out;
+    if(n<=1){ out=raw.slice(); }
+    else{ out=[]; let ema=null; const k=2/(n+1);
+      for(let i=0;i<raw.length;i++){ const v=raw[i];
+        if(v==null){out.push(null);continue;}
+        ema=(ema==null)?v:v*k+ema*(1-k); out.push(Math.round(ema*10)/10); } }
+    gexShown=out; if(gexSeries)gexSeries.setData(pair(D.dates,out));
+    const lg=(a=>{for(let i=a.length-1;i>=0;i--)if(a[i]!=null)return a[i];return null;})(out);
+    const el=document.getElementById('s-gex'); if(el)el.textContent=lg==null?'—':lg.toFixed(1);
+  }
+
+  function setSmart(which){
+    const arr=D['smart_'+which]||D.smart_money;
+    smartShown=arr; if(smS)smS.setData(pair(D.dates,arr));
+    const last=(a=>{for(let i=a.length-1;i>=0;i--)if(a[i]!=null)return a[i];return null;})(arr);
+    const el=document.getElementById('s-smart'); if(el)el.textContent=last==null?'—':last.toFixed(1);
+  }
+
+  function setTF(tf){
+    if(!charts.length||!D)return;
+    const n=D.dates.length;
+    const bars = tf==='6m'?120 : tf==='2y'?500 : n;
+    const plotW=Math.max(200,(document.getElementById('panel-taiex').clientWidth||640)-60);
+    const bs=Math.max(0.25, plotW/bars);
+    charts.forEach(c=>{try{c.timeScale().applyOptions({barSpacing:bs,rightOffset:2});c.timeScale().scrollToPosition(0,false);}catch(e){}});
+    requestAnimationFrame(drawProfile);
+  }
+
+  function applyToggles(){
+    if(volS)volS.applyOptions({visible:ST.vol});
+    if(pinS)pinS.applyOptions({visible:ST.pin});
+    document.getElementById('sec-gex').style.display=ST.gex?'':'none';
+    document.getElementById('sec-smart').style.display=ST.smart?'':'none';
+    if(ST.gex&&cB)cB.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
+    if(ST.smart&&cC)cC.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
+    document.getElementById('sec-vix').style.display=ST.vix?'':'none';
+    if(ST.vix&&cD)cD.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
+    requestAnimationFrame(drawProfile);
+  }
+
+  function snapshot(d){
+    const last=a=>{for(let i=a.length-1;i>=0;i--)if(a[i]!=null)return a[i];return null;};
+    document.getElementById('s-taiex').textContent=fmt(last(d.taiex));
+    document.getElementById('s-vol').textContent=(v=>v==null?'—':'NT$'+fmt(Math.round(v/10))+'B')(last(d.taiex_turnover_bn||[]));
+    document.getElementById('s-smart').textContent=(v=>v==null?'—':v.toFixed(1))(last(d.smart_money));
+    document.getElementById('updated').textContent='Updated '+d.dates[d.dates.length-1];
+    if(d.meta&&d.meta.gex_since)document.getElementById('gex-since').textContent='← GEX data since '+d.meta.gex_since+' (index since 2010)';
+    if(d.meta&&d.meta.dealer_sign_verified===false){document.getElementById('gex-badge').style.display='inline-block';document.getElementById('def-caveat').style.display='block';}
+  }
+
+  (async function(){
+    let d;
+    try{const r=await fetch('../data.json',{cache:'no-store'});const j=await r.json();d=(j&&j.dates&&j.dates.length>=30)?j:genSample();}
+    catch(e){d=genSample();}
+    snapshot(d);build(d);
+    document.querySelectorAll('.tf').forEach(b=>b.addEventListener('click',()=>{
+      document.querySelectorAll('.tf').forEach(x=>x.classList.remove('active'));b.classList.add('active');setTF(b.dataset.tf);}));
+    document.querySelectorAll('.tg').forEach(b=>b.addEventListener('click',()=>{
+      const k=b.dataset.k;ST[k]=!ST[k];b.classList.toggle('on',ST[k]);applyToggles();}));
+    document.querySelectorAll('#gex-smooth button').forEach(b=>b.addEventListener('click',()=>{
+      document.querySelectorAll('#gex-smooth button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on'); smoothGEX(+b.dataset.n);}));
+    document.querySelectorAll('#sm-grp button').forEach(b=>b.addEventListener('click',()=>{
+      document.querySelectorAll('#sm-grp button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on'); setSmart(b.dataset.s);}));
+  })();
+</script>
+<div id="anchor-ad" role="complementary" aria-label="Advertisement"><div class="inner"><button class="x" aria-label="Close ad" onclick="document.getElementById('anchor-ad').remove();document.body.style.paddingBottom='0';">×</button>Ad · pending AdSense</div></div>
+</body>
+</html>
