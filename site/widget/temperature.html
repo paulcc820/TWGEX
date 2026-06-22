@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>台股市場溫度計 · TWGEX</title>
+<meta name="description" content="台股市場溫度計（0–10）即時嵌入式 widget。資料 TWSE/TAIFEX，每日更新，非投資建議。">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#F7F6F3;--border:#E4E2DC;--ink:#1A1A18;--muted:#6E6B63;--faint:#86837B;
+    --serif:'Newsreader',Georgia,serif;--mono:'JetBrains Mono',ui-monospace,monospace;
+    --sans:'Helvetica Neue',Arial,'PingFang TC','Microsoft JhengHei',sans-serif;}
+  *{box-sizing:border-box;} html,body{margin:0;}
+  body{background:transparent;color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;}
+  .card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:13px 16px 9px;max-width:360px;margin:0 auto;}
+  .cap{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:0.04em;}
+  svg{display:block;max-width:300px;width:100%;margin:2px auto 0;}
+  .score{font-family:var(--serif);font-size:42px;font-weight:600;line-height:1;text-align:center;margin-top:2px;}
+  .band{font-size:15px;text-align:center;margin-top:4px;}
+  .scale{display:flex;justify-content:center;gap:16px;margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--faint);}
+  .foot{margin-top:10px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:10px;color:var(--faint);}
+  .foot a{color:var(--ink);text-decoration:none;font-weight:500;}
+  .foot a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="cap">台股市場溫度計</div>
+  <svg viewBox="0 0 480 228" role="img" aria-label="台股市場溫度計，0 到 10">
+    <path d="M80,210 A160,160 0 0,1 110.6,116" fill="none" stroke="#1F6C9F" stroke-width="34"/>
+    <path d="M110.6,116 A160,160 0 0,1 190.6,57.8" fill="none" stroke="#5DA9C9" stroke-width="34"/>
+    <path d="M190.6,57.8 A160,160 0 0,1 289.4,57.8" fill="none" stroke="#C9C6BE" stroke-width="34"/>
+    <path d="M289.4,57.8 A160,160 0 0,1 369.4,116" fill="none" stroke="#E59A6C" stroke-width="34"/>
+    <path d="M369.4,116 A160,160 0 0,1 400,210" fill="none" stroke="#C2452F" stroke-width="34"/>
+    <text x="50" y="206" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#86837B">0</text>
+    <text x="240" y="24" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#86837B">5</text>
+    <text x="430" y="206" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#86837B">10</text>
+    <line id="needle" x1="240" y1="210" x2="240" y2="80" stroke="#1A1A18" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="240" cy="210" r="9" fill="#1A1A18"/><circle cx="240" cy="210" r="3.5" fill="#F7F6F3"/>
+  </svg>
+  <div class="score" id="score">—</div>
+  <div class="band" id="band">—</div>
+  <div class="scale"><span>0 過冷</span><span>5 中性</span><span>10 過熱</span></div>
+  <div class="foot"><span id="upd">資料更新中…</span><a href="https://twgex.com" target="_blank" rel="noopener">twgex.com →</a></div>
+</div>
+<script>
+  const lastv=a=>{for(let i=a.length-1;i>=0;i--)if(a[i]!=null)return a[i];return null;};
+  function bandColor(t){return t<2?'#1F6C9F':t<4?'#5DA9C9':t<6?'#888780':t<8?'#C77A45':'#C2452F';}
+  function bandLabel(t){return t<2?'過冷':t<4?'偏冷':t<6?'中性':t<8?'偏熱':'過熱';}
+  function setNeedle(t){const n=document.getElementById('needle');
+    if(t==null){n.style.display='none';return;}
+    const th=Math.PI*(1-Math.max(0,Math.min(10,t))/10);
+    n.setAttribute('x2',(240+135*Math.cos(th)).toFixed(1)); n.setAttribute('y2',(210-135*Math.sin(th)).toFixed(1));}
+  fetch('/data.json',{cache:'no-store'}).then(r=>r.json()).then(D=>{
+    const st=lastv(D.smart_total||[]), rh=lastv(D.retail_heat||[]);
+    const t=(st==null||rh==null)?null:Math.round((st+rh)/2*10)/10;
+    const sc=document.getElementById('score');
+    if(t==null){sc.textContent='—';}else{sc.textContent=t.toFixed(1);sc.style.color=bandColor(t);}
+    const b=document.getElementById('band'); b.textContent=t==null?'—':bandLabel(t); b.style.color=t==null?'':bandColor(t);
+    setNeedle(t);
+    document.getElementById('upd').textContent=(D.dates&&D.dates.length)?('更新 '+D.dates[D.dates.length-1]):'—';
+  }).catch(function(){document.getElementById('upd').textContent='—';});
+</script>
+</body>
+</html>
