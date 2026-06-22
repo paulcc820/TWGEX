@@ -36,7 +36,7 @@
   *{box-sizing:border-box;}
   html,body{margin:0;}
   body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;}
-  .wrap{max-width:920px;margin:0 auto;padding:28px 24px 52px;}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 24px 52px;}
   .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;}
   .lbl{font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);}
   a{color:inherit;text-decoration:none;}
@@ -88,17 +88,19 @@
     .gex-smooth button,.tg,.tf{font-size:11px;padding:3px 8px;}
   }
   /* market temperature hero */
-  .hero-h{font-family:var(--serif);font-size:26px;font-weight:500;margin:0 0 2px;}
+  .hero-h{font-family:var(--serif);font-size:26px;font-weight:500;margin:0 0 2px;text-align:center;}
+  .hero{text-align:center;}
+  .hero-h + .updated{text-align:center;}
   .seg{display:inline-flex;gap:6px;flex-wrap:wrap;}
   .seg button{font-family:var(--mono);font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--muted);cursor:pointer;}
   .seg button.on{border-color:var(--ink);color:var(--ink);}
-  .gcard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin:12px 0 14px;text-align:center;}
+  .gcard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;max-width:760px;margin:12px auto 14px;text-align:center;}
   .gauge-score{font-family:var(--serif);font-size:46px;font-weight:600;line-height:1;}
   .gauge-regime{font-size:16px;margin-top:6px;}
   .gauge-desc{font-size:14px;color:var(--muted);margin:8px auto 0;max-width:460px;}
   .scale{display:flex;justify-content:center;gap:18px;margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--faint);flex-wrap:wrap;}
-  .axes{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-  .axc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+  .axes{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:760px;margin:0 auto;}
+  .axc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:left;}
   .axc .v{font-family:var(--mono);font-size:24px;font-weight:500;line-height:1;margin-top:6px;}
   .axc .s{font-size:12px;color:var(--muted);margin-top:6px;}
   .extremes{margin-top:13px;font-family:var(--mono);font-size:11px;color:var(--faint);text-align:center;line-height:1.7;}
@@ -140,7 +142,7 @@
   <div class="hero">
     <div class="seg" id="grp-seg"><button data-g="foreign">Foreign</button><button data-g="domestic">Domestic</button><button data-g="retail">Retail</button><button class="on" data-g="total">Total</button></div>
     <div class="gcard">
-      <svg width="100%" viewBox="0 0 480 250" role="img" aria-label="Taiwan market temperature gauge, 0 to 10" style="max-width:440px;">
+      <svg width="100%" viewBox="0 0 480 250" role="img" aria-label="Taiwan market temperature gauge, 0 to 10" style="max-width:480px;">
         <path d="M80,210 A160,160 0 0,1 110.6,116" fill="none" stroke="#1F6C9F" stroke-width="34"/>
         <path d="M110.6,116 A160,160 0 0,1 190.6,57.8" fill="none" stroke="#5DA9C9" stroke-width="34"/>
         <path d="M190.6,57.8 A160,160 0 0,1 289.4,57.8" fill="none" stroke="#C9C6BE" stroke-width="34"/>
