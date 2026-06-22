@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
+  <rect width="1200" height="1200" fill="#F7F6F3"/>
+  <g transform="translate(0,285)">
+    <rect x="40" y="36" width="1120" height="558" fill="none" stroke="#E4E2DC" stroke-width="2"/>
+    <rect x="100" y="96" width="118" height="118" rx="26" fill="none" stroke="#1A1A18" stroke-width="6"/>
+    <text x="159" y="190" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="82" fill="#1A1A18">&#947;</text>
+    <text x="250" y="172" font-family="Georgia, 'Times New Roman', serif" font-size="90" font-weight="600" fill="#1A1A18">TWGEX</text>
+    <text x="254" y="210" font-family="'PingFang TC','Heiti TC','Microsoft JhengHei',Helvetica,Arial,sans-serif" font-size="25" fill="#6E6B63">&#21488;&#32929;&#24066;&#22580;&#32080;&#27083;&#35264;&#28204;&#31449; &#183; Taiwan Market Structure</text>
+    <text x="100" y="340" font-family="Georgia, 'Times New Roman', serif" font-size="58" fill="#1A1A18">&#22823;&#30436; &#215; GEX &#215; &#19977;&#22823;&#27861;&#20154; &#215; &#24066;&#22580;&#28201;&#24230;</text>
+    <text x="100" y="438" font-family="'PingFang TC','Heiti TC','Microsoft JhengHei',Helvetica,Arial,sans-serif" font-size="28" fill="#6E6B63">GEX &#36984;&#25799;&#26309;&#26292;&#38298; &#183; &#22806;&#36039;&#31821;&#30908; &#183; &#24066;&#22580;&#28201;&#24230;&#35336; &#183; &#21488;&#32929;&#27874;&#21205;&#29575;</text>
+    <text x="100" y="528" font-family="'PingFang TC','Heiti TC','Microsoft JhengHei',Helvetica,Arial,sans-serif" font-size="23" fill="#86837B">twgex.com &#183; &#27599;&#26085;&#30436;&#24460;&#33258;&#21205;&#26356;&#26032; &#183; &#38750;&#25237;&#36039;&#24314;&#35696;</text>
+  </g>
+</svg>

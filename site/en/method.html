@@ -3,9 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TWGEX Methodology · Indicator definitions</title>
-<meta name="description" content="What each TWGEX indicator measures and how it is computed: GEX, gamma center, volume profile, smart-money direction, retail heat, market temperature, TWVIX. Public-data observation, not investment advice.">
+<title>What is GEX? Taiwan Options Gamma Exposure, Smart Money &amp; Volatility | TWGEX</title>
+<meta name="description" content="TWGEX methodology: how Gamma Exposure (GEX) is computed from TAIFEX options data, how the institutional smart-money score is ranked, the retail heat formula, and 21-day realized volatility (TWVIX/HV21).">
 <meta name="theme-color" content="#F7F6F3">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta property="og:url" content="https://twgex.com/en/method.html">
+<meta property="og:image" content="https://twgex.com/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://twgex.com/assets/og-image.png">
 <link rel="canonical" href="https://twgex.com/en/method.html">
 <link rel="alternate" hreflang="zh-Hant" href="https://twgex.com/method.html">
 <link rel="alternate" hreflang="en" href="https://twgex.com/en/method.html">
@@ -49,6 +56,17 @@
   #anchor-ad .x{position:absolute;top:-9px;right:-9px;width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:13px;line-height:18px;text-align:center;cursor:pointer;padding:0;}
   @media (max-width:560px){body{padding-bottom:74px;} #anchor-ad{padding:7px 8px;} #anchor-ad .inner{min-height:44px;}}
 </style>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is GEX (Gamma Exposure)?","acceptedAnswer":{"@type":"Answer","text":"GEX (Gamma Exposure) measures the total gamma that option market-makers hold to stay position-neutral. It is aggregated strike by strike as Black-Scholes gamma multiplied by open interest, expressed as the NT$ amount (in millions) adjusted per one-point move in the index. Only options more than two days from expiry and near at-the-money are included."}},
+{"@type":"Question","name":"How is smart-money positioning calculated?","acceptedAnswer":{"@type":"Answer","text":"The combined net position (spot plus futures) of Taiwan's three institutional groups — foreign investors, investment trusts and dealers — is ranked against its own 252-trading-day history and mapped to 1-10 (1 most short, 10 most long). It can be viewed for foreign, domestic (trusts plus dealers), or all three combined. Data from TWSE and TAIFEX."}},
+{"@type":"Question","name":"How does TWVIX (HV21) differ from the official TAIFEX VIX?","acceptedAnswer":{"@type":"Answer","text":"TWGEX's TWVIX is the annualised standard deviation of the index's daily returns over the last 21 trading days (realized volatility, HV21) — volatility that has already occurred. The official TAIFEX VIX is implied volatility derived from option prices, measuring expected future volatility. This site shows the former, not the official VIX."}},
+{"@type":"Question","name":"How is the market temperature gauge calculated?","acceptedAnswer":{"@type":"Answer","text":"Market temperature is the average of smart-money positioning and retail heat, mapped to 0-10 (0 coldest, 10 hottest). Retail heat is the average of three 252-day percentile ranks: retail spot absorption, change in margin balance, and overall turnover. Updated each trading day after close."}}
+]}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Dataset","name":"Taiwan Equity Market Structure Dataset — GEX, Institutional Flow, Realized Volatility","description":"Daily-updated dataset: TAIEX options Gamma Exposure (GEX), institutional investor net positioning (foreign/investment trust/dealers), retail heat index, and 21-day realized volatility. Derived from TWSE and TAIFEX public data.","url":"https://twgex.com/en/method.html","license":"https://data.gov.tw/license","creator":{"@type":"Organization","name":"TWGEX","url":"https://twgex.com"},"temporalCoverage":"2019-01-01/..","spatialCoverage":"Taiwan","keywords":["GEX","gamma exposure","Taiwan stocks","institutional investors","options","realized volatility","TAIEX","TAIFEX"],"variableMeasured":["GEX","Smart Money Score","Retail Heat","Market Temperature","HV21"]}
+</script>
 </head>
 <body>
 <div class="wrap">
