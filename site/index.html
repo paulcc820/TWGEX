@@ -97,10 +97,10 @@
     </div>
     <nav>
       <a href="./" class="active">大盤結構</a>
-      <a href="./fear.html">市場溫度</a>
+      <a href="./fear.html">市場溫度計</a>
       <a href="./method.html">說明</a>
       <a href="./about.html">關於</a>
-      <span class="lang">中 <a href="./en/" style="color:var(--ink)">EN</a> 日 한</span>
+      <span class="lang">中 <a href="./en/" style="color:var(--ink)">EN</a></span>
     </nav>
   </header>
 
@@ -132,8 +132,7 @@
       <div class="panel-cap"><span class="lbl">台股 GEX · 結構部位（百萬 / 點）</span>
         <span style="display:inline-flex;align-items:center;gap:8px;">
           <span class="gex-smooth" id="gex-smooth"><button data-n="1">原始</button><button data-n="5">5日</button><button class="on" data-n="10">10日</button><button data-n="20">20日</button></span>
-          <span class="badge" id="gex-badge" style="display:none;">符號待驗證</span>
-        </span>
+                  </span>
       </div>
       <div id="panel-gex"></div>
       <div class="since-note" id="gex-since"></div>
@@ -159,8 +158,7 @@
 
   <div class="defs">
     <div class="def"><h3>GEX · 結構部位（百萬 / 點）</h3>
-      <p>衡量造市商在選擇權部位上的 Gamma 暴露總量，以「指數每移動 1 點、造市商需調整的部位金額」表示（百萬元）。GEX 偏高時，造市商對沖傾向壓縮大盤波動；偏低時對沖可能放大波動。Panel A 的虛線標記為當日 Gamma 重心，代表 OI 最集中的履約價帶。「平滑」可選原始（顯示結算週 gamma 週期）或 5／10／20 日（抹平為結構趨勢）。</p>
-      <p class="caveat" id="def-caveat" style="display:none;">目前 dealer direction 符號待三指紋實證，正負值方向僅供參考。</p></div>
+      <p>衡量造市商在選擇權部位上的 Gamma 暴露總量，以「指數每移動 1 點、造市商需調整的部位金額」表示（百萬元）。GEX 偏高時，造市商對沖傾向壓縮大盤波動；偏低時對沖可能放大波動。Panel A 的虛線標記為當日 Gamma 重心，代表 OI 最集中的履約價帶。「平滑」可選原始（顯示結算週 gamma 週期）或 5／10／20 日（抹平為結構趨勢）。</p></div>
     <div class="def"><h3>量價結構（垂直量 ＋ 橫向量）</h3>
       <p>垂直量為時間軸每日成交金額；橫向量（Volume Profile）為成交量在價格軸的分布，最寬處（價值區）即成交最集中的價位帶。量價結構與 Gamma 重心相互對照，可觀察市場「被錨定」的價位。</p></div>
     <div class="def"><h3>聰明錢方向（外資 / 內資 / 加總）</h3>
@@ -357,7 +355,7 @@
     document.getElementById('s-smart').textContent=(v=>v==null?'—':v.toFixed(1))(last(d.smart_money));
     document.getElementById('updated').textContent='最後更新 '+d.dates[d.dates.length-1];
     if(d.meta&&d.meta.gex_since)document.getElementById('gex-since').textContent='← GEX 資料自 '+d.meta.gex_since+' 起（大盤自 2010 起）';
-    if(d.meta&&d.meta.dealer_sign_verified===false){document.getElementById('gex-badge').style.display='inline-block';document.getElementById('def-caveat').style.display='block';}
+    // dealer-sign 方向註記見「說明」頁
   }
 
   (async function(){

@@ -76,10 +76,10 @@
     </div>
     <nav>
       <a href="./">大盤結構</a>
-      <a href="./fear.html" class="active">市場溫度</a>
+      <a href="./fear.html" class="active">市場溫度計</a>
       <a href="./method.html">說明</a>
       <a href="./about.html">關於</a>
-      <span class="lang">中 <a href="./en/fear.html" style="color:var(--ink)">EN</a> 日 한</span>
+      <span class="lang">中 <a href="./en/fear.html" style="color:var(--ink)">EN</a></span>
     </nav>
   </header>
 
@@ -88,7 +88,7 @@
 
   <div class="controls">
     <div class="seg" id="view-seg"><button class="on" data-v="gauge">碼錶</button><button data-v="trend">走勢</button></div>
-    <div class="seg" id="grp-seg"><button data-g="foreign">外資</button><button data-g="domestic">內資</button><button class="on" data-g="total">加總</button></div>
+    <div class="seg" id="grp-seg"><button data-g="foreign">外資</button><button data-g="domestic">內資</button><button data-g="retail">散戶</button><button class="on" data-g="total">加總</button></div>
   </div>
 
   <div class="card gauge-state">
@@ -123,7 +123,7 @@
 
   <div class="defs">
     <div class="def"><h3>市場溫度（0 冷 ~ 10 熱）</h3>
-      <p>由「聰明錢方向」與「散戶熱度」兩項綜合而得：兩者同步偏多、活躍時，溫度偏高（過熱）；同步偏空、清淡時，溫度偏低（過冷）。為市場整體情緒與參與度的狀態描述，非買賣信號。可切換以外資、內資或三大法人加總計算，並可在「碼錶」（當日收盤）與「走勢」（近半年）間切換。</p></div>
+      <p>「加總」綜合「三大法人聰明錢方向」與「散戶熱度」：兩者同步偏多、活躍時溫度偏高（過熱），同步偏空、清淡時偏低（過冷）。也可單看外資、內資或散戶各自的讀數，並在「碼錶」（當日收盤）與「走勢」（近半年）間切換。為市場情緒與參與度的狀態描述，非買賣信號。</p></div>
     <div class="def"><h3>散戶熱度</h3>
       <p>由散戶現貨承接壓力、融資餘額變化、整體量能，與自身 252 個交易日歷史相比後綜合而得（0 冷 ~ 10 燙），反映市場情緒溫度。</p></div>
     <div class="def"><h3>聰明錢方向</h3>
@@ -139,7 +139,7 @@
 
 <script>
   const THEME={bg:'#F7F6F3',text:'#2C2C2C',grid:'#E8E4DE',border:'#D4CFC8'};
-  const GNAME={foreign:'外資',domestic:'內資',total:'加總'};
+  const GNAME={foreign:'外資',domestic:'內資',retail:'散戶',total:'加總'};
   // 溫度色帶（純溫度，無方向字眼）
   function bandColor(t){return t<2?'#1F6C9F':t<4?'#5DA9C9':t<6?'#888780':t<8?'#C77A45':'#C2452F';}
   function bandLabel(t){return t<2?'過冷':t<4?'偏冷':t<6?'中性':t<8?'偏熱':'過熱';}
@@ -148,8 +148,10 @@
 
   let D, group='total', view='gauge', tempChart=null, tempSeries=null;
   const lastv=a=>{for(let i=a.length-1;i>=0;i--)if(a[i]!=null)return a[i];return null;};
-  function tempArray(g){const sm=D['smart_'+g]||[],rh=D.retail_heat||[];
-    return D.dates.map((t,i)=>(sm[i]==null||rh[i]==null)?null:Math.round((sm[i]+rh[i])/2*10)/10);}
+  function tempArray(g){const rh=D.retail_heat||[];
+    if(g==='retail') return D.dates.map((t,i)=>rh[i]==null?null:Math.round(rh[i]*10)/10);
+    if(g==='total'){const s=D.smart_total||[];return D.dates.map((t,i)=>(s[i]==null||rh[i]==null)?null:Math.round((s[i]+rh[i])/2*10)/10);}
+    const s=D['smart_'+g]||[];return D.dates.map((t,i)=>s[i]==null?null:Math.round(s[i]*10)/10);}
 
   function setNeedle(t){const n=document.getElementById('gauge-needle');
     if(t==null){n.style.display='none';return;} n.style.display='';
@@ -157,8 +159,12 @@
     n.setAttribute('x2',(240+135*Math.cos(th)).toFixed(1)); n.setAttribute('y2',(210-135*Math.sin(th)).toFixed(1));}
 
   function renderGauge(){
-    const sm=lastv(D['smart_'+group]||[]), rh=lastv(D.retail_heat||[]);
-    const t=(sm==null||rh==null)?null:Math.round((sm+rh)/2*10)/10;
+    const sg=(group==='retail')?'total':group;
+    const sm=lastv(D['smart_'+sg]||[]), rh=lastv(D.retail_heat||[]);
+    let t;
+    if(group==='retail') t=(rh==null)?null:Math.round(rh*10)/10;
+    else if(group==='total') t=(sm==null||rh==null)?null:Math.round((sm+rh)/2*10)/10;
+    else t=(sm==null)?null:Math.round(sm*10)/10;
     const gs=document.getElementById('gauge-score');
     if(t==null){gs.textContent='—';} else {gs.textContent=t.toFixed(1);gs.style.color=bandColor(t);}
     const gr=document.getElementById('gauge-regime'); gr.textContent=t==null?'—':bandLabel(t); gr.style.color=t==null?'':bandColor(t);
@@ -166,7 +172,7 @@
     setNeedle(t);
     document.getElementById('ax-smart').textContent=sm==null?'—':sm.toFixed(1);
     document.getElementById('ax-retail').textContent=rh==null?'—':rh.toFixed(1);
-    document.getElementById('grp-name').textContent='（'+GNAME[group]+'）';
+    document.getElementById('grp-name').textContent='（'+GNAME[sg]+'）';
     document.getElementById('trend-now').textContent=t==null?'':t.toFixed(1)+'　'+bandLabel(t);
     if(document.getElementById('trend-now')) document.getElementById('trend-now').style.color=t==null?'':bandColor(t);
   }

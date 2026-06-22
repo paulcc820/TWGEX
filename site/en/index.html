@@ -96,15 +96,15 @@
       <div><div class="brand-name">TWGEX</div><div class="brand-sub">Taiwan market structure · weather watch</div></div>
     </div>
     <nav>
-      <a href="./" class="active">Structure</a>
-      <a href="./fear.html">Temperature</a>
+      <a href="./" class="active">Market structure</a>
+      <a href="./fear.html">Market temperature</a>
       <a href="./method.html">Methodology</a>
       <a href="./about.html">About</a>
-      <span class="lang"><a href="../">中</a> <a class="on">EN</a> 日 한</span>
+      <span class="lang"><a href="../">中</a> <a class="on">EN</a></span>
     </nav>
   </header>
 
-  <h1 class="h1">Taiwan index × structural positioning</h1>
+  <h1 class="h1">Taiwan index × market structure</h1>
   <div class="updated" id="updated">Updated —</div>
 
   <div class="controls">
@@ -125,27 +125,26 @@
 
   <div class="panelwrap">
     <div id="sec-taiex">
-      <div class="panel-cap"><span class="lbl">TAIEX · price &amp; volume structure</span></div>
+      <div class="panel-cap"><span class="lbl">TAIEX · price &amp; volume profile</span></div>
       <div class="panelA"><div id="panel-taiex"></div><svg id="vp-overlay"></svg><div id="panelA-legend" class="pa-legend"></div></div>
     </div>
     <div id="sec-gex">
-      <div class="panel-cap"><span class="lbl">Taiwan GEX · structural exposure (NT$M / pt)</span>
+      <div class="panel-cap"><span class="lbl">Gamma Exposure (GEX) · NT$M per index point</span>
         <span style="display:inline-flex;align-items:center;gap:8px;">
           <span class="gex-smooth" id="gex-smooth"><button data-n="1">Raw</button><button data-n="5">5D</button><button class="on" data-n="10">10D</button><button data-n="20">20D</button></span>
-          <span class="badge" id="gex-badge" style="display:none;">sign unverified</span>
-        </span>
+                  </span>
       </div>
       <div id="panel-gex"></div>
       <div class="since-note" id="gex-since"></div>
     </div>
     <div id="sec-smart">
-      <div class="panel-cap"><span class="lbl">Smart-money direction (1 short — 10 long)</span>
+      <div class="panel-cap"><span class="lbl">Smart-money positioning (1 short — 10 long)</span>
         <span class="gex-smooth" id="sm-grp"><button class="on" data-s="foreign">Foreign</button><button data-s="domestic">Domestic</button><button data-s="total">Total</button></span>
       </div>
       <div id="panel-smart"></div>
     </div>
     <div id="sec-vix">
-      <div class="panel-cap"><span class="lbl">TWVIX · volatility HV21 (%, 21-day annualised)</span></div>
+      <div class="panel-cap"><span class="lbl">TWVIX · 21-day annualised volatility (HV21, %)</span></div>
       <div id="panel-vix"></div>
     </div>
   </div>
@@ -158,12 +157,11 @@
   </div>
 
   <div class="defs">
-    <div class="def"><h3>GEX · structural exposure (NT$M / pt)</h3>
-      <p>The total gamma exposure option market-makers hold, expressed as the NT$ amount adjusted per one-point index move (millions). When GEX is high, market-maker hedging tends to compress index volatility; when low, hedging may amplify it. The dotted marker on Panel A is the day's gamma center — the strike band where open interest is most concentrated. Smoothing can be set to Raw (showing the expiry-week gamma cycle) or 5/10/20-day (smoothed to a structural trend).</p>
-      <p class="caveat" id="def-caveat" style="display:none;">The dealer-direction sign is pending verification against Taiwan data; its polarity is indicative only.</p></div>
-    <div class="def"><h3>Volume structure (vertical + horizontal)</h3>
+    <div class="def"><h3>Gamma Exposure (GEX) · NT$M per index point</h3>
+      <p>The total gamma exposure option market-makers hold, expressed as the NT$ amount adjusted per one-point index move (millions). When GEX is high, market-maker hedging tends to compress index volatility; when low, hedging may amplify it. The dotted marker on Panel A is the day's gamma center — the strike band where open interest is most concentrated. Smoothing can be set to Raw (showing the expiry-week gamma cycle) or 5/10/20-day (smoothed to a structural trend).</p></div>
+    <div class="def"><h3>Volume profile (vertical + horizontal)</h3>
       <p>Vertical volume is daily turnover over time; horizontal volume (volume profile) is the distribution of traded volume across price, whose thickest band (the value area) is the most-traded price zone. Read alongside the gamma center, it shows where the market is anchored.</p></div>
-    <div class="def"><h3>Smart-money direction (foreign / domestic / total)</h3>
+    <div class="def"><h3>Smart-money positioning (foreign / domestic / total)</h3>
       <p>The combined net position (spot + futures) of institutions, ranked against its own 252-trading-day history and mapped to 1 (most short) to 10 (most long). Switchable between foreign, domestic (trusts + dealers), or all three combined; a divergence between foreign and domestic reflects differing institutional positioning. A structural-bias indicator, not a trade signal.</p></div>
   </div>
 
@@ -355,7 +353,7 @@
     document.getElementById('s-smart').textContent=(v=>v==null?'—':v.toFixed(1))(last(d.smart_money));
     document.getElementById('updated').textContent='Updated '+d.dates[d.dates.length-1];
     if(d.meta&&d.meta.gex_since)document.getElementById('gex-since').textContent='← GEX data since '+d.meta.gex_since+' (index since 2010)';
-    if(d.meta&&d.meta.dealer_sign_verified===false){document.getElementById('gex-badge').style.display='inline-block';document.getElementById('def-caveat').style.display='block';}
+    // dealer-sign note lives on the Methodology page
   }
 
   (async function(){

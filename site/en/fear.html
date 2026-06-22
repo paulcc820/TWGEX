@@ -72,11 +72,11 @@
       <div><div class="brand-name">TWGEX</div><div class="brand-sub">Taiwan market structure · weather watch</div></div>
     </div>
     <nav>
-      <a href="./">Structure</a>
-      <a href="./fear.html" class="active">Temperature</a>
+      <a href="./">Market structure</a>
+      <a href="./fear.html" class="active">Market temperature</a>
       <a href="./method.html">Methodology</a>
       <a href="./about.html">About</a>
-      <span class="lang"><a href="../fear.html">中</a> <a class="on">EN</a> 日 한</span>
+      <span class="lang"><a href="../fear.html">中</a> <a class="on">EN</a></span>
     </nav>
   </header>
 
@@ -85,7 +85,7 @@
 
   <div class="controls">
     <div class="seg" id="view-seg"><button class="on" data-v="gauge">Gauge</button><button data-v="trend">Trend</button></div>
-    <div class="seg" id="grp-seg"><button data-g="foreign">Foreign</button><button data-g="domestic">Domestic</button><button class="on" data-g="total">Total</button></div>
+    <div class="seg" id="grp-seg"><button data-g="foreign">Foreign</button><button data-g="domestic">Domestic</button><button data-g="retail">Retail</button><button class="on" data-g="total">Total</button></div>
   </div>
 
   <div class="card gauge-state">
@@ -114,16 +114,16 @@
   </div>
 
   <div class="axes">
-    <div class="axc"><span class="lbl">Smart-money direction <span id="grp-name">(Total)</span></span><div class="v" id="ax-smart">—</div><div class="s">1 short — 10 long</div></div>
+    <div class="axc"><span class="lbl">Smart-money positioning <span id="grp-name">(Total)</span></span><div class="v" id="ax-smart">—</div><div class="s">1 short — 10 long</div></div>
     <div class="axc"><span class="lbl">Retail heat</span><div class="v" id="ax-retail">—</div><div class="s">0 cold — 10 hot</div></div>
   </div>
 
   <div class="defs">
     <div class="def"><h3>Market temperature (0 cold ~ 10 hot)</h3>
-      <p>The average of smart-money direction and retail heat: when institutions and retail are both leaning long and active, temperature is high (hot); when both are short and quiet, it is low (cold). It is a state reading of overall market sentiment and participation, not a trade signal. It can be computed using foreign, domestic, or all three institutional groups, and switched between gauge (latest close) and trend (last six months).</p></div>
+      <p>The headline "Total" reading averages smart-money positioning (all three institutional groups) with retail heat: when both lean long and active, the temperature runs hot; when both are short and quiet, it runs cold. You can also read each participant on its own dial — foreign, domestic or retail — and switch between gauge (latest close) and trend (last six months). It is a state reading of market sentiment and participation, not a trade signal.</p></div>
     <div class="def"><h3>Retail heat</h3>
       <p>The average of three 252-day percentile ranks — retail spot absorption, change in margin balance, and overall turnover — mapped to 0 (cold) to 10 (hot).</p></div>
-    <div class="def"><h3>Smart-money direction</h3>
+    <div class="def"><h3>Smart-money positioning</h3>
       <p>The combined net position (spot + futures) of institutions ranked against its own 252-day history and mapped to 1 (most short) to 10 (most long). A structural-bias indicator, not a trade signal.</p></div>
   </div>
 
@@ -137,24 +137,30 @@
 
 <script>
   const THEME={bg:'#F7F6F3',text:'#2C2C2C',grid:'#E8E4DE',border:'#D4CFC8'};
-  const GNAME={foreign:'Foreign',domestic:'Domestic',total:'Total'};
+  const GNAME={foreign:'Foreign',domestic:'Domestic',retail:'Retail',total:'Total'};
   function bandColor(t){return t<2?'#1F6C9F':t<4?'#5DA9C9':t<6?'#888780':t<8?'#C77A45':'#C2452F';}
   function bandLabel(t){return t<2?'Cold':t<4?'Cool':t<6?'Neutral':t<8?'Warm':'Hot';}
-  function bandDesc(t){return t<4?'Sentiment is cool and participation low.':t<6?'Sentiment is neutral.':'Sentiment is warm and participation high.';}
+  function bandDesc(t){return t<4?'Sentiment is cool and participation is low.':t<6?'Sentiment is neutral.':'Sentiment is warm and participation is high.';}
   const DEFAULT={dates:[],retail_heat:[],smart_foreign:[],smart_domestic:[],smart_total:[]};
 
   let D, group='total', view='gauge', tempChart=null, tempSeries=null;
   const lastv=a=>{for(let i=a.length-1;i>=0;i--)if(a[i]!=null)return a[i];return null;};
-  function tempArray(g){const sm=D['smart_'+g]||[],rh=D.retail_heat||[];
-    return D.dates.map((t,i)=>(sm[i]==null||rh[i]==null)?null:Math.round((sm[i]+rh[i])/2*10)/10);}
+  function tempArray(g){const rh=D.retail_heat||[];
+    if(g==='retail') return D.dates.map((t,i)=>rh[i]==null?null:Math.round(rh[i]*10)/10);
+    if(g==='total'){const s=D.smart_total||[];return D.dates.map((t,i)=>(s[i]==null||rh[i]==null)?null:Math.round((s[i]+rh[i])/2*10)/10);}
+    const s=D['smart_'+g]||[];return D.dates.map((t,i)=>s[i]==null?null:Math.round(s[i]*10)/10);}
   function setNeedle(t){const n=document.getElementById('gauge-needle');
     if(t==null){n.style.display='none';return;} n.style.display='';
     const th=Math.PI*(1-Math.max(0,Math.min(10,t))/10);
     n.setAttribute('x2',(240+135*Math.cos(th)).toFixed(1)); n.setAttribute('y2',(210-135*Math.sin(th)).toFixed(1));}
 
   function renderGauge(){
-    const sm=lastv(D['smart_'+group]||[]), rh=lastv(D.retail_heat||[]);
-    const t=(sm==null||rh==null)?null:Math.round((sm+rh)/2*10)/10;
+    const sg=(group==='retail')?'total':group;
+    const sm=lastv(D['smart_'+sg]||[]), rh=lastv(D.retail_heat||[]);
+    let t;
+    if(group==='retail') t=(rh==null)?null:Math.round(rh*10)/10;
+    else if(group==='total') t=(sm==null||rh==null)?null:Math.round((sm+rh)/2*10)/10;
+    else t=(sm==null)?null:Math.round(sm*10)/10;
     const gs=document.getElementById('gauge-score');
     if(t==null){gs.textContent='—';} else {gs.textContent=t.toFixed(1);gs.style.color=bandColor(t);}
     const gr=document.getElementById('gauge-regime'); gr.textContent=t==null?'—':bandLabel(t); gr.style.color=t==null?'':bandColor(t);
@@ -162,7 +168,7 @@
     setNeedle(t);
     document.getElementById('ax-smart').textContent=sm==null?'—':sm.toFixed(1);
     document.getElementById('ax-retail').textContent=rh==null?'—':rh.toFixed(1);
-    document.getElementById('grp-name').textContent='('+GNAME[group]+')';
+    document.getElementById('grp-name').textContent='('+GNAME[sg]+')';
     const tn=document.getElementById('trend-now'); tn.textContent=t==null?'':t.toFixed(1)+'　'+bandLabel(t); tn.style.color=t==null?'':bandColor(t);
   }
   function renderTrend(){
