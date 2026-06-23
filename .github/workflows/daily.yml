@@ -5,7 +5,9 @@ name: TWGEX daily refresh
 
 on:
   schedule:
-    - cron: "30 10 * * 1-5"   # 每週一~五 UTC 10:30＝台灣 18:30（盤後資料已就緒）
+    - cron: "30 10 * * 1-5"   # 台灣 18:30（每週一~五，盤後資料已就緒）
+    - cron: "0 12 * * 1-5"    # 台灣 20:00（備援：若 18:30 被 GitHub 延遲）
+    - cron: "0 14 * * 1-5"    # 台灣 22:00（備援：再補一次，確保當晚更新）
   workflow_dispatch: {}        # 也可在 Actions 頁面手動點「Run workflow」
 
 permissions:
