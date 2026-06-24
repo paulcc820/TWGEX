@@ -94,7 +94,7 @@
   .seg{display:inline-flex;gap:6px;flex-wrap:wrap;}
   .seg button{font-family:var(--mono);font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--muted);cursor:pointer;}
   .seg button.on{border-color:var(--ink);color:var(--ink);}
-  .gcard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px 28px;max-width:840px;margin:12px auto 14px;text-align:center;}
+  .gcard{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px 28px;max-width:840px;margin:12px auto 14px;text-align:center;}
   .gauge-score{font-family:var(--serif);font-size:58px;font-weight:600;line-height:1;}
   .gauge-regime{font-size:16px;margin-top:6px;}
   .gauge-desc{font-size:14px;color:var(--muted);margin:8px auto 0;max-width:460px;}
@@ -104,9 +104,10 @@
   .axc .v{font-family:var(--mono);font-size:24px;font-weight:500;line-height:1;margin-top:6px;}
   .axc .s{font-size:12px;color:var(--muted);margin-top:6px;}
   .extremes{margin-top:13px;font-family:var(--mono);font-size:11px;color:var(--faint);text-align:center;line-height:1.7;}
-  .hero-controls{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:2px;}
-  .viewseg button{min-width:66px;}
   #hist-chart{width:100%;height:300px;margin:4px 0;}
+  .view-switch{position:absolute;right:12px;bottom:10px;display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;background:var(--surface);z-index:3;}
+  .view-switch button{font-family:var(--mono);font-size:11px;padding:4px 11px;border:0;background:transparent;color:var(--faint);cursor:pointer;line-height:1.4;}
+  .view-switch button.on{background:var(--ink);color:#fff;}
   .sec-divider{border-top:1px solid var(--border);margin:26px 0 16px;padding-top:16px;}
   .sec-divider .lbl{color:var(--muted);}
   @media (max-width:560px){.axes{grid-template-columns:1fr;} .gauge-score{font-size:40px;}}
@@ -143,10 +144,7 @@
   <div class="updated" id="updated">最後更新 —</div>
 
   <div class="hero">
-    <div class="hero-controls">
-      <div class="seg" id="grp-seg"><button data-g="foreign">外資</button><button data-g="domestic">內資</button><button data-g="retail">散戶</button><button class="on" data-g="total">加總</button></div>
-      <div class="seg viewseg" id="view-seg"><button class="on" data-v="gauge">溫度計</button><button data-v="hist">歷史走勢</button></div>
-    </div>
+    <div class="seg" id="grp-seg"><button data-g="foreign">外資</button><button data-g="domestic">內資</button><button data-g="retail">散戶</button><button class="on" data-g="total">加總</button></div>
     <div class="gcard">
       <div id="gauge-view">
       <svg id="gauge-svg" width="100%" viewBox="0 0 480 250" role="img" aria-label="台股市場溫度計 0 到 10" style="max-width:580px;">
@@ -168,6 +166,7 @@
       </div>
       <div id="hist-view" style="display:none;"><div id="hist-chart"></div></div>
       <div class="extremes" id="extremes"></div>
+      <div class="view-switch" id="view-seg"><button class="on" data-v="gauge">溫度計</button><button data-v="hist">走勢</button></div>
     </div>
     <div class="axes">
       <div class="axc"><span class="lbl">聰明錢方向 <span id="grp-name">（加總）</span></span><div class="v" id="ax-smart">—</div><div class="s">1 空 — 10 多</div></div>
@@ -469,6 +468,7 @@
   }
 
   let histChart=null,histSeries=null;
+  const HIST_DAYS=126;                    // 歷史走勢預設半年(≈126交易日)；日後付費解鎖更長
   function tempSeriesFor(g){
     const sf=D.smart_foreign||[],sd=D.smart_domestic||[],st=D.smart_total||[],rh=D.retail_heat||[];
     const out=[];
@@ -478,7 +478,7 @@
       else v=(st[i]==null||rh[i]==null)?null:(st[i]+rh[i])/2;
       if(v!=null)out.push({time:D.dates[i],value:Math.round(v*100)/100});
     }
-    return out;
+    return out.slice(-HIST_DAYS);
   }
   function renderHist(){
     const el=document.getElementById('hist-chart'),LC=window.LightweightCharts;
