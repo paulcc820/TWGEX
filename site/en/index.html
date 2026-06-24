@@ -104,12 +104,12 @@
   .axc .v{font-family:var(--mono);font-size:24px;font-weight:500;line-height:1;margin-top:6px;}
   .axc .s{font-size:12px;color:var(--muted);margin-top:6px;}
   #hist-chart{width:100%;height:300px;margin:4px 0;}
-  .view-switch{position:absolute;right:12px;bottom:10px;display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;background:var(--surface);z-index:3;}
+  .view-switch{display:flex;width:fit-content;margin:10px 0 0 auto;border:1px solid var(--border);border-radius:7px;overflow:hidden;background:var(--surface);}
   .view-switch button{font-family:var(--mono);font-size:11px;padding:4px 11px;border:0;background:transparent;color:var(--faint);cursor:pointer;line-height:1.4;}
   .view-switch button.on{background:var(--ink);color:#fff;}
   .sec-divider{border-top:1px solid var(--border);margin:26px 0 16px;padding-top:16px;}
   .sec-divider .lbl{color:var(--muted);}
-  @media (max-width:560px){.axes{grid-template-columns:1fr;} .gauge-score{font-size:40px;} .view-switch{position:static;margin:12px auto 0;}}
+  @media (max-width:560px){.axes{grid-template-columns:1fr;} .gauge-score{font-size:40px;} .view-switch{margin:10px auto 0;}}
   /* fixed bottom anchor ad */
   body{padding-bottom:84px;}
   #anchor-ad{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;justify-content:center;background:rgba(247,246,243,.94);backdrop-filter:saturate(1.05) blur(8px);-webkit-backdrop-filter:saturate(1.05) blur(8px);border-top:1px solid var(--border);padding:9px 12px;}
@@ -497,7 +497,7 @@
         rightPriceScale:{borderColor:THEME.border},timeScale:{borderColor:THEME.border},
         handleScroll:false,handleScale:false});
       histSeries=histChart.addLineSeries({color:'#1A1A18',lineWidth:2,priceFormat:{type:'price',precision:1,minMove:0.1}});
-      [[8,'#C2452F'],[5,'#C9C6BE'],[2,'#1F6C9F']].forEach(pc=>histSeries.createPriceLine({price:pc[0],color:pc[1],lineWidth:1,lineStyle:LC.LineStyle.Dashed,axisLabelVisible:false}));
+      histSeries.createPriceLine({price:5,color:'#C9C6BE',lineWidth:1,lineStyle:LC.LineStyle.Dashed,axisLabelVisible:false});
     }
     histSeries.setData(tempSeriesFor(gGroup));
     histChart.timeScale().fitContent();
