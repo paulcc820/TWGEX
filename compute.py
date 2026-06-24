@@ -28,6 +28,7 @@ OUT_PATH = Path(__file__).resolve().parent / "site" / "data.json"
 R, Q = 0.015, 0.03
 TXO_MULT = 50
 MINI_WEIGHT = 50 / 200
+MICRO_WEIGHT = 10 / 200          # 微型臺指 NT$10/點 → 大台(NT$200/點)等值權重
 WINDOW = 252
 NEAR_EXPIRY_CUTOFF_DAYS = 2       # 只剔結算日（dte<2）的死合約
 GAMMA_TENOR_FLOOR_DAYS = 12       # gamma 用的到期時間地板：壓掉 T→0 的 1/√T 暴衝（IV 仍用真實 T 解）
@@ -210,6 +211,21 @@ def retail_heat_series(taiex, inst, margin, fut, idx):
     return (comp * 10).round(2)
 
 
+def retail_dir_series(fut, idx):
+    """散戶方向 1空~10多：小台+微台（市值權重）零和倒推 −(三大法人合計)。
+    大台剔除（保證金高、機構主導，不像散戶）；小台/微台為散戶主導商品，方向才是散戶自己的判斷。"""
+    def pr(s):
+        s = s[~s.index.duplicated()].sort_index()
+        return s.rolling(WINDOW, min_periods=60).rank(pct=True)
+    def prod_net(p):
+        d = fut[fut["product"] == p]
+        return d.groupby("date")["net_oi"].sum() if not d.empty else pd.Series(dtype=float)
+    mini = prod_net("小型臺指") * MINI_WEIGHT
+    micro = prod_net("微型臺指") * MICRO_WEIGHT
+    retail_net = -(mini.add(micro, fill_value=0))           # 散戶＝−法人（零和）
+    return (1 + pr(retail_net).reindex(idx) * 9).round(2)
+
+
 def divergence_calc(Dser, Hser):
     """恐慌背離＝散戶熱 − 聰明錢熱（線性差值）。
     乘積公式在 d=0（聰明錢中性）時退化為固定 50，故改線性差值。
@@ -267,6 +283,7 @@ def build_series():
     # 散戶熱度 + 過熱/過冷計（恐慌計頁用）
     margin = _read("margin_total.csv")
     retail = retail_heat_series(taiex, inst, margin, fut, idx)
+    retail_dir = retail_dir_series(fut, idx)
     div, gauge = divergence_calc(sm["foreign"], retail)
     rh, fg = nn(retail), nn(gauge)
     def _lastv(arr):
@@ -275,6 +292,7 @@ def build_series():
                 return v
         return None
     D_last, H_last, g_last, hv_last = _lastv(sm_f), _lastv(rh), _lastv(fg), _lastv(nn(hv21))
+    RD_last = _lastv(nn(retail_dir))
     regime = "neutral"
     if D_last is not None and H_last is not None:
         dd, hh = (D_last - 5.5) / 4.5, (H_last - 5) / 5
@@ -296,7 +314,7 @@ def build_series():
             "today": {"regime": regime,
                       "fear_score": (None if g_last is None else round(g_last / 10, 1)),
                       "fear_gauge": g_last, "retail_heat": H_last,
-                      "smart_foreign": D_last, "hv21": hv_last},
+                      "smart_foreign": D_last, "retail_dir": RD_last, "hv21": hv_last},
         },
         "dates": dates,
         "taiex": [round(float(v), 2) for v in px],
@@ -308,6 +326,7 @@ def build_series():
         "smart_domestic": nn(sm["domestic"]),
         "smart_total": nn(sm["total"]),
         "retail_heat": rh,
+        "retail_dir": nn(retail_dir),
         "fear_gauge": fg,
         "hv21_proxy": nn(hv21),
     }

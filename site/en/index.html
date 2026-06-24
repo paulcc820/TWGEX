@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Taiwan Market Temperature · Fear &amp; Greed Sentiment × GEX × Institutional Flow | TWGEX</title>
-<meta name="description" content="Taiwan stock market temperature: a 0–10 gauge of foreign, domestic, retail and institutional sentiment, plus options Gamma Exposure (GEX) and realized volatility. Updated daily. Open data, not investment advice.">
+<meta name="description" content="Taiwan stock market temperature: a 0–10 gauge of foreign, dealer and retail sentiment, plus options Gamma Exposure (GEX), institutional flow direction and realized volatility. Updated daily. Open data, not investment advice.">
 <meta property="og:title" content="Taiwan Stock Market Structure · GEX × Institutional Flow | TWGEX">
 <meta property="og:description" content="Daily Taiwan equity market structure: options Gamma Exposure (GEX), institutional positioning, and realized volatility. Open data, not investment advice.">
 <meta property="og:type" content="website">
@@ -175,7 +175,7 @@
     </div>
   </div>
 
-  <div class="sec-divider"><span class="lbl">Market structure (advanced) · Index × GEX × Smart money × TWVIX</span></div>
+  <div class="sec-divider"><span class="lbl">Market structure (advanced) · Index × GEX × Smart money × Retail direction × TWVIX</span></div>
 
   <div class="controls">
     <div class="tfbar">
@@ -189,6 +189,7 @@
       <button class="tg on" data-k="pin"><span class="dot"></span>Gamma center</button>
       <button class="tg on" data-k="gex"><span class="dot"></span>GEX</button>
       <button class="tg on" data-k="smart"><span class="dot"></span>Smart money</button>
+      <button class="tg on" data-k="rdir"><span class="dot"></span>Retail dir</button>
       <button class="tg on" data-k="vix"><span class="dot"></span>TWVIX</button>
     </div>
   </div>
@@ -212,6 +213,10 @@
         <span class="gex-smooth" id="sm-grp"><button class="on" data-s="foreign">Foreign</button><button data-s="domestic">Dealer</button><button data-s="total">Total</button></span>
       </div>
       <div id="panel-smart"></div>
+    </div>
+    <div id="sec-rdir">
+      <div class="panel-cap"><span class="lbl">Retail direction (1 short — 10 long) · Mini + Micro futures</span></div>
+      <div id="panel-rdir"></div>
     </div>
     <div id="sec-vix">
       <div class="panel-cap"><span class="lbl">TWVIX · 21-day annualised volatility (HV21, %)</span></div>
@@ -257,8 +262,8 @@
     return {meta:{dealer_sign_verified:false,gex_since:days[gexStart]},dates:days,taiex,taiex_turnover_bn:vol,gex_total:gex,gex_pinning:pin,smart_money:smart,hv21_proxy:days.map(()=>null)};
   }
 
-  let D,cA,cB,cC,cD,taiexS,volS,pinS,gexSeries,smS,vixSeries,gexShown,smartShown,charts=[];
-  const ST={vol:true,vp:true,pin:true,gex:true,smart:true,vix:true};
+  let D,cA,cB,cC,cD,cE,taiexS,volS,pinS,gexSeries,smS,vixSeries,rdS,gexShown,smartShown,charts=[];
+  const ST={vol:true,vp:true,pin:true,gex:true,smart:true,rdir:true,vix:true};
   function pair(dates,vals){return dates.map((t,i)=>(vals[i]==null)?{time:t}:{time:t,value:vals[i]});}
 
   function build(d){
@@ -289,11 +294,16 @@
     smS.setData(pair(d.dates,d.smart_foreign||d.smart_money));
     smS.createPriceLine({price:5.5,color:'#C9C6BE',lineWidth:1,lineStyle:LC.LineStyle.Dashed,axisLabelVisible:false});
 
+    cE=LC.createChart(document.getElementById('panel-rdir'),{...common,width:W(),height:120});
+    rdS=cE.addLineSeries({color:'#C2452F',lineWidth:1,priceFormat:{type:'price',precision:1,minMove:0.1}});
+    rdS.setData(pair(d.dates,d.retail_dir||[]));
+    rdS.createPriceLine({price:5.5,color:'#C9C6BE',lineWidth:1,lineStyle:LC.LineStyle.Dashed,axisLabelVisible:false});
+
     cD=LC.createChart(document.getElementById('panel-vix'),{...common,width:W(),height:120});
     vixSeries=cD.addAreaSeries({topColor:'rgba(31,108,159,0.16)',bottomColor:'rgba(31,108,159,0.02)',lineColor:'#1F6C9F',lineWidth:1,priceFormat:{type:'price',precision:1,minMove:0.1}});
     vixSeries.setData(pair(d.dates,(d.hv21_proxy||[]).map(v=>v==null?null:Math.round(v*1000)/10)));
 
-    charts=[cA,cB,cC,cD];
+    charts=[cA,cB,cC,cE,cD];
 
     const dateIdx=new Map(d.dates.map((s,i)=>[s,i]));
     const t2s=t=>typeof t==='string'?t:(t&&t.year?`${t.year}-${String(t.month).padStart(2,'0')}-${String(t.day).padStart(2,'0')}`:null);
@@ -307,7 +317,7 @@
     function sync(src,param){
       if(syncing)return; syncing=true;
       try{
-        if(!param||param.time===undefined){[cA,cB,cC,cD].forEach(c=>c&&c.clearCrosshairPosition());updateLegend(null);}
+        if(!param||param.time===undefined){[cA,cB,cC,cD,cE].forEach(c=>c&&c.clearCrosshairPosition());updateLegend(null);}
         else{
           const i=dateIdx.get(t2s(param.time));
           if(i!=null){
@@ -316,6 +326,7 @@
             if(src!==cB&&gexSeries){const gv=(gexShown||d.gex_total)[i]; if(gv!=null)cB.setCrosshairPosition(gv,param.time,gexSeries);}
             if(src!==cC&&smS){const sv=(smartShown||d.smart_money)[i]; if(sv!=null)cC.setCrosshairPosition(sv,param.time,smS);}
             if(src!==cD&&vixSeries&&d.hv21_proxy[i]!=null)cD.setCrosshairPosition(Math.round(d.hv21_proxy[i]*1000)/10,param.time,vixSeries);
+            if(src!==cE&&rdS&&(d.retail_dir||[])[i]!=null)cE.setCrosshairPosition(d.retail_dir[i],param.time,rdS);
           }
         }
       }catch(e){}
@@ -325,6 +336,7 @@
     cB.subscribeCrosshairMove(p=>sync(cB,p));
     cC.subscribeCrosshairMove(p=>sync(cC,p));
     cD.subscribeCrosshairMove(p=>sync(cD,p));
+    cE.subscribeCrosshairMove(p=>sync(cE,p));
 
     cA.timeScale().subscribeVisibleLogicalRangeChange(()=>requestAnimationFrame(drawProfile));
     window.addEventListener('resize',()=>{charts.forEach(c=>c.applyOptions({width:W()}));requestAnimationFrame(drawProfile);});
@@ -404,6 +416,8 @@
     document.getElementById('sec-smart').style.display=ST.smart?'':'none';
     if(ST.gex&&cB)cB.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
     if(ST.smart&&cC)cC.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
+    document.getElementById('sec-rdir').style.display=ST.rdir?'':'none';
+    if(ST.rdir&&cE)cE.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
     document.getElementById('sec-vix').style.display=ST.vix?'':'none';
     if(ST.vix&&cD)cD.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
     requestAnimationFrame(drawProfile);

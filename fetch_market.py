@@ -37,7 +37,7 @@ OPT_DAILY_DOWNLOAD = "https://www.taifex.com.tw/cht/3/optDataDown"
 
 THROTTLE = 0.6          # FinMind / TAIFEX 之間的禮貌間隔
 TWSE_THROTTLE = 3.0     # TWSE 限流較嚴
-FUT_PRODUCTS = {"TX": "臺股期貨", "MTX": "小型臺指"}
+FUT_PRODUCTS = {"TX": "臺股期貨", "MTX": "小型臺指", "TMF": "微型臺指"}  # 微台 2022-07 上市，散戶方向用
 OPT_DAILY_COLMAP = [("交易日期", "date"), ("到期月份", "expiry"), ("履約價", "strike"),
                     ("買賣權", "cp"), ("收盤價", "close"), ("成交量", "volume"),
                     ("結算價", "settle"), ("未沖銷契約數", "oi"),

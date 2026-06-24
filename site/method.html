@@ -65,7 +65,7 @@
 ]}
 </script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Dataset","name":"Taiwan Equity Market Structure Dataset — GEX, Institutional Flow, Realized Volatility","description":"Daily-updated dataset: TAIEX options Gamma Exposure (GEX), institutional investor net positioning (foreign/investment trust/dealers), retail heat index, and 21-day realized volatility. Derived from TWSE and TAIFEX public data.","url":"https://twgex.com/method.html","license":"https://data.gov.tw/license","creator":{"@type":"Organization","name":"TWGEX","url":"https://twgex.com"},"temporalCoverage":"2019-01-01/..","spatialCoverage":"Taiwan","keywords":["GEX","gamma exposure","台股","三大法人","選擇權","已實現波動率","恐慌背離","TAIEX","TAIFEX"],"variableMeasured":["GEX","Smart Money Score","Retail Heat","Market Temperature","Fear Divergence","HV21"]}
+{"@context":"https://schema.org","@type":"Dataset","name":"Taiwan Equity Market Structure Dataset — GEX, Institutional Flow, Realized Volatility","description":"Daily-updated dataset: TAIEX options Gamma Exposure (GEX), institutional investor net positioning (foreign/investment trust/dealers), retail heat index, and 21-day realized volatility. Derived from TWSE and TAIFEX public data.","url":"https://twgex.com/method.html","license":"https://data.gov.tw/license","creator":{"@type":"Organization","name":"TWGEX","url":"https://twgex.com"},"temporalCoverage":"2019-01-01/..","spatialCoverage":"Taiwan","keywords":["GEX","gamma exposure","台股","三大法人","選擇權","已實現波動率","恐慌背離","TAIEX","TAIFEX"],"variableMeasured":["GEX","Smart Money Score","Retail Heat","Retail Direction","Market Temperature","Fear Divergence","HV21"]}
 </script>
 </head>
 <body>
@@ -92,6 +92,9 @@
 
     <dt>散戶熱度<span class="en">retail heat</span></dt>
     <dd>散戶現貨承接壓力、融資餘額變化、整體成交量能、散戶期貨方向、投信現貨淨買超五項的 252 日相對分位之平均，換算為 0 至 10。散戶期貨方向由三大法人期貨淨額之零和倒推得出；投信現貨淨買超反映 ETF／基金申贖的散戶資金流向。</dd>
+
+    <dt>散戶方向<span class="en">retail direction</span></dt>
+    <dd>散戶在小型臺指與微型臺指期貨的淨多空（以三大法人合計部位零和倒推、市值權重），與自身 252 個交易日歷史相比，換算為 1 至 10（1 最空、10 最多）。小台／微台為散戶主導商品，較能反映散戶自身方向；大台保證金高、機構主導，故不納入。</dd>
 
     <dt>市場溫度<span class="en">temperature</span></dt>
     <dd>「聰明錢方向」與「散戶熱度」兩項的平均，換算為 0 至 10。可切換當日碼錶或歷史走勢線圖。</dd>

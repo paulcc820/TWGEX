@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>台股市場溫度計 · 市場情緒恐慌貪婪 × GEX × 三大法人籌碼 | TWGEX</title>
-<meta name="description" content="台股市場溫度計：0–10 即時呈現外資、內資、散戶與三大法人籌碼情緒，整合 GEX 選擇權暴露、台股波動率。每日更新，公開資料，非投資建議。">
+<meta name="description" content="台股市場溫度計：0–10 即時呈現外資、自營、散戶籌碼情緒，整合 GEX 選擇權暴露、三大法人方向、台股波動率。每日更新，公開資料，非投資建議。">
 <meta property="og:title" content="台股大盤籌碼結構 · GEX × 三大法人 × 波動率 | TWGEX">
 <meta property="og:description" content="每日更新台股大盤市場結構：GEX 選擇權暴露、三大法人籌碼分位、台股波動率。公開資料可視化，非投資建議。">
 <meta property="og:type" content="website">
@@ -175,7 +175,7 @@
     </div>
   </div>
 
-  <div class="sec-divider"><span class="lbl">市場結構（進階）· 大盤 × GEX × 聰明錢 × 台VIX</span></div>
+  <div class="sec-divider"><span class="lbl">市場結構（進階）· 大盤 × GEX × 聰明錢 × 散戶方向 × 台VIX</span></div>
 
   <div class="controls">
     <div class="tfbar">
@@ -189,6 +189,7 @@
       <button class="tg on" data-k="pin"><span class="dot"></span>Gamma 重心</button>
       <button class="tg on" data-k="gex"><span class="dot"></span>GEX</button>
       <button class="tg on" data-k="smart"><span class="dot"></span>聰明錢</button>
+      <button class="tg on" data-k="rdir"><span class="dot"></span>散戶方向</button>
       <button class="tg on" data-k="vix"><span class="dot"></span>台VIX</button>
     </div>
   </div>
@@ -212,6 +213,10 @@
         <span class="gex-smooth" id="sm-grp"><button class="on" data-s="foreign">外資</button><button data-s="domestic">自營</button><button data-s="total">加總</button></span>
       </div>
       <div id="panel-smart"></div>
+    </div>
+    <div id="sec-rdir">
+      <div class="panel-cap"><span class="lbl">散戶方向（1 空 — 10 多）· 小台＋微台</span></div>
+      <div id="panel-rdir"></div>
     </div>
     <div id="sec-vix">
       <div class="panel-cap"><span class="lbl">台VIX · 波動率 HV21（%，21 日年化）</span></div>
@@ -257,8 +262,8 @@
     return {meta:{dealer_sign_verified:false,gex_since:days[gexStart]},dates:days,taiex,taiex_turnover_bn:vol,gex_total:gex,gex_pinning:pin,smart_money:smart,hv21_proxy:days.map(()=>null)};
   }
 
-  let D,cA,cB,cC,cD,taiexS,volS,pinS,gexSeries,smS,vixSeries,gexShown,smartShown,charts=[];
-  const ST={vol:true,vp:true,pin:true,gex:true,smart:true,vix:true};
+  let D,cA,cB,cC,cD,cE,taiexS,volS,pinS,gexSeries,smS,vixSeries,rdS,gexShown,smartShown,charts=[];
+  const ST={vol:true,vp:true,pin:true,gex:true,smart:true,rdir:true,vix:true};
   function pair(dates,vals){return dates.map((t,i)=>(vals[i]==null)?{time:t}:{time:t,value:vals[i]});}
 
   function build(d){
@@ -289,11 +294,16 @@
     smS.setData(pair(d.dates,d.smart_foreign||d.smart_money));
     smS.createPriceLine({price:5.5,color:'#C9C6BE',lineWidth:1,lineStyle:LC.LineStyle.Dashed,axisLabelVisible:false});
 
+    cE=LC.createChart(document.getElementById('panel-rdir'),{...common,width:W(),height:120});
+    rdS=cE.addLineSeries({color:'#C2452F',lineWidth:1,priceFormat:{type:'price',precision:1,minMove:0.1}});
+    rdS.setData(pair(d.dates,d.retail_dir||[]));
+    rdS.createPriceLine({price:5.5,color:'#C9C6BE',lineWidth:1,lineStyle:LC.LineStyle.Dashed,axisLabelVisible:false});
+
     cD=LC.createChart(document.getElementById('panel-vix'),{...common,width:W(),height:120});
     vixSeries=cD.addAreaSeries({topColor:'rgba(31,108,159,0.16)',bottomColor:'rgba(31,108,159,0.02)',lineColor:'#1F6C9F',lineWidth:1,priceFormat:{type:'price',precision:1,minMove:0.1}});
     vixSeries.setData(pair(d.dates,(d.hv21_proxy||[]).map(v=>v==null?null:Math.round(v*1000)/10)));
 
-    charts=[cA,cB,cC,cD];
+    charts=[cA,cB,cC,cE,cD];
 
     // 跨三圖同步游標：滑到任一圖，三圖同時在同一時間點出現虛線標記
     const dateIdx=new Map(d.dates.map((s,i)=>[s,i]));
@@ -308,7 +318,7 @@
     function sync(src,param){
       if(syncing)return; syncing=true;
       try{
-        if(!param||param.time===undefined){[cA,cB,cC,cD].forEach(c=>c&&c.clearCrosshairPosition());updateLegend(null);}
+        if(!param||param.time===undefined){[cA,cB,cC,cD,cE].forEach(c=>c&&c.clearCrosshairPosition());updateLegend(null);}
         else{
           const i=dateIdx.get(t2s(param.time));
           if(i!=null){
@@ -317,6 +327,7 @@
             if(src!==cB&&gexSeries){const gv=(gexShown||d.gex_total)[i]; if(gv!=null)cB.setCrosshairPosition(gv,param.time,gexSeries);}
             if(src!==cC&&smS){const sv=(smartShown||d.smart_money)[i]; if(sv!=null)cC.setCrosshairPosition(sv,param.time,smS);}
             if(src!==cD&&vixSeries&&d.hv21_proxy[i]!=null)cD.setCrosshairPosition(Math.round(d.hv21_proxy[i]*1000)/10,param.time,vixSeries);
+            if(src!==cE&&rdS&&(d.retail_dir||[])[i]!=null)cE.setCrosshairPosition(d.retail_dir[i],param.time,rdS);
           }
         }
       }catch(e){}
@@ -326,6 +337,7 @@
     cB.subscribeCrosshairMove(p=>sync(cB,p));
     cC.subscribeCrosshairMove(p=>sync(cC,p));
     cD.subscribeCrosshairMove(p=>sync(cD,p));
+    cE.subscribeCrosshairMove(p=>sync(cE,p));
 
     cA.timeScale().subscribeVisibleLogicalRangeChange(()=>requestAnimationFrame(drawProfile));
     window.addEventListener('resize',()=>{charts.forEach(c=>c.applyOptions({width:W()}));requestAnimationFrame(drawProfile);});
@@ -405,6 +417,8 @@
     document.getElementById('sec-smart').style.display=ST.smart?'':'none';
     if(ST.gex&&cB)cB.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
     if(ST.smart&&cC)cC.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
+    document.getElementById('sec-rdir').style.display=ST.rdir?'':'none';
+    if(ST.rdir&&cE)cE.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
     document.getElementById('sec-vix').style.display=ST.vix?'':'none';
     if(ST.vix&&cD)cD.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
     requestAnimationFrame(drawProfile);

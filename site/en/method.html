@@ -66,7 +66,7 @@
 ]}
 </script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Dataset","name":"Taiwan Equity Market Structure Dataset — GEX, Institutional Flow, Realized Volatility","description":"Daily-updated dataset: TAIEX options Gamma Exposure (GEX), institutional investor net positioning (foreign/investment trust/dealers), retail heat index, and 21-day realized volatility. Derived from TWSE and TAIFEX public data.","url":"https://twgex.com/en/method.html","license":"https://data.gov.tw/license","creator":{"@type":"Organization","name":"TWGEX","url":"https://twgex.com"},"temporalCoverage":"2019-01-01/..","spatialCoverage":"Taiwan","keywords":["GEX","gamma exposure","Taiwan stocks","institutional investors","options","realized volatility","fear divergence","TAIEX","TAIFEX"],"variableMeasured":["GEX","Smart Money Score","Retail Heat","Market Temperature","Fear Divergence","HV21"]}
+{"@context":"https://schema.org","@type":"Dataset","name":"Taiwan Equity Market Structure Dataset — GEX, Institutional Flow, Realized Volatility","description":"Daily-updated dataset: TAIEX options Gamma Exposure (GEX), institutional investor net positioning (foreign/investment trust/dealers), retail heat index, and 21-day realized volatility. Derived from TWSE and TAIFEX public data.","url":"https://twgex.com/en/method.html","license":"https://data.gov.tw/license","creator":{"@type":"Organization","name":"TWGEX","url":"https://twgex.com"},"temporalCoverage":"2019-01-01/..","spatialCoverage":"Taiwan","keywords":["GEX","gamma exposure","Taiwan stocks","institutional investors","options","realized volatility","fear divergence","TAIEX","TAIFEX"],"variableMeasured":["GEX","Smart Money Score","Retail Heat","Retail Direction","Market Temperature","Fear Divergence","HV21"]}
 </script>
 </head>
 <body>
@@ -94,8 +94,11 @@
     <dt>Retail heat</dt>
     <dd>The average of five 252-day percentile ranks — retail spot absorption, change in margin balance, overall turnover, retail futures direction, and investment-trust net spot buying — mapped to 0–10. Retail futures direction is inferred as the zero-sum inverse of the three institutional groups' net futures; investment-trust net buying reflects ETF/fund subscription flows driven by retail.</dd>
 
+    <dt>Retail direction</dt>
+    <dd>Retail's net long/short in mini-TAIEX and micro-TAIEX futures (inferred zero-sum from the three institutional groups' combined position, value-weighted), ranked against its own 252-trading-day history and mapped to 1–10 (1 most short, 10 most long). Mini/micro contracts are retail-dominated and better reflect retail's own direction; the full-size contract (high margin, institution-dominated) is excluded.</dd>
+
     <dt>Market temperature</dt>
-    <dd>The average of smart-money positioning and retail heat — the headline "Total" reading — mapped to 0–10; foreign, domestic and retail can each also be read on their own. Switchable between a daily gauge and a historical trend line.</dd>
+    <dd>The average of smart-money positioning and retail heat — the headline "Total" reading — mapped to 0–10; foreign, dealer and retail can each also be read on their own. Switchable between a daily gauge and a historical trend line.</dd>
 
     <dt>Fear divergence</dt>
     <dd>The gap between retail heat and smart-money positioning, mapped to 0–100. Above 50 means retail is hotter than smart money; below 50 means smart money is hotter than retail; around 50 means the two are in sync. It describes the relative sentiment gap only, not a price forecast.</dd>
