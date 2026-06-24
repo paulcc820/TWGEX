@@ -94,16 +94,21 @@
   .seg{display:inline-flex;gap:6px;flex-wrap:wrap;}
   .seg button{font-family:var(--mono);font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--muted);cursor:pointer;}
   .seg button.on{border-color:var(--ink);color:var(--ink);}
-  .gcard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;max-width:760px;margin:12px auto 14px;text-align:center;}
-  .gauge-score{font-family:var(--serif);font-size:46px;font-weight:600;line-height:1;}
+  .gcard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px 28px;max-width:840px;margin:12px auto 14px;text-align:center;}
+  .gauge-score{font-family:var(--serif);font-size:58px;font-weight:600;line-height:1;}
   .gauge-regime{font-size:16px;margin-top:6px;}
   .gauge-desc{font-size:14px;color:var(--muted);margin:8px auto 0;max-width:460px;}
   .scale{display:flex;justify-content:center;gap:18px;margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--faint);flex-wrap:wrap;}
-  .axes{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:760px;margin:0 auto;}
+  .axes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:840px;margin:0 auto;}
   .axc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:left;}
   .axc .v{font-family:var(--mono);font-size:24px;font-weight:500;line-height:1;margin-top:6px;}
   .axc .s{font-size:12px;color:var(--muted);margin-top:6px;}
   .extremes{margin-top:13px;font-family:var(--mono);font-size:11px;color:var(--faint);text-align:center;line-height:1.7;}
+  .timeline{max-width:840px;margin:10px auto 2px;display:flex;align-items:center;gap:12px;}
+  .timeline input[type=range]{flex:1;height:4px;accent-color:var(--ink);cursor:pointer;}
+  .tl-date{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap;min-width:104px;text-align:right;}
+  .tl-today{font-family:var(--mono);font-size:11px;padding:3px 9px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--muted);cursor:pointer;}
+  .tl-today:hover{border-color:var(--ink);color:var(--ink);}
   .sec-divider{border-top:1px solid var(--border);margin:26px 0 16px;padding-top:16px;}
   .sec-divider .lbl{color:var(--muted);}
   @media (max-width:560px){.axes{grid-template-columns:1fr;} .gauge-score{font-size:40px;}}
@@ -142,7 +147,7 @@
   <div class="hero">
     <div class="seg" id="grp-seg"><button data-g="foreign">Foreign</button><button data-g="domestic">Domestic</button><button data-g="retail">Retail</button><button class="on" data-g="total">Total</button></div>
     <div class="gcard">
-      <svg width="100%" viewBox="0 0 480 250" role="img" aria-label="Taiwan market temperature gauge, 0 to 10" style="max-width:480px;">
+      <svg id="gauge-svg" width="100%" viewBox="0 0 480 250" role="img" aria-label="Taiwan market temperature gauge, 0 to 10" style="max-width:580px;">
         <path d="M80,210 A160,160 0 0,1 110.6,116" fill="none" stroke="#1F6C9F" stroke-width="34"/>
         <path d="M110.6,116 A160,160 0 0,1 190.6,57.8" fill="none" stroke="#5DA9C9" stroke-width="34"/>
         <path d="M190.6,57.8 A160,160 0 0,1 289.4,57.8" fill="none" stroke="#C9C6BE" stroke-width="34"/>
@@ -160,9 +165,15 @@
       <div class="scale"><span>0–2 Cold</span><span>4–6 Neutral</span><span>8–10 Hot</span></div>
       <div class="extremes" id="extremes"></div>
     </div>
+    <div class="timeline">
+      <input type="range" id="tl" min="0" max="0" value="0" step="1" aria-label="Select observation date, drag to replay historical temperature">
+      <span class="tl-date" id="tl-date">—</span>
+      <button class="tl-today" id="tl-today" title="Back to latest trading day">Today</button>
+    </div>
     <div class="axes">
       <div class="axc"><span class="lbl">Smart-money positioning <span id="grp-name">(Total)</span></span><div class="v" id="ax-smart">—</div><div class="s">1 short — 10 long</div></div>
       <div class="axc"><span class="lbl">Retail heat</span><div class="v" id="ax-retail">—</div><div class="s">0 cold — 10 hot</div></div>
+      <div class="axc"><span class="lbl">Fear divergence</span><div class="v" id="ax-fear">—</div><div class="s" id="ax-fear-s">Retail vs Foreign</div></div>
     </div>
   </div>
 
@@ -413,12 +424,15 @@
   // ── market temperature gauge (hero) ──
   const GNAME={foreign:'Foreign',domestic:'Domestic',retail:'Retail',total:'Total'};
   const lastv=a=>{for(let i=a.length-1;i>=0;i--)if(a[i]!=null)return a[i];return null;};
+  let selIdx=null;                       // timeline selected index (null = latest day)
+  const at=(a,i)=>{if(!a)return null;const j=(i==null?a.length-1:i);return a[j]==null?null:a[j];};
+  function fearState(fg){return fg==null?'—':fg>=65?'Retail > Foreign (high)':fg<=35?'Foreign > Retail (low)':'In sync';}
   function bandColor(t){return t<2?'#1F6C9F':t<4?'#5DA9C9':t<6?'#888780':t<8?'#C77A45':'#C2452F';}
   function bandLabel(t){return t<2?'Cold':t<4?'Cool':t<6?'Neutral':t<8?'Warm':'Hot';}
   function bandDesc(t){return t<4?'Sentiment is cool and participation is low.':t<6?'Sentiment is neutral.':'Sentiment is warm and participation is high.';}
   let gGroup='total';
   function gaugeVal(g){
-    const sf=lastv(D.smart_foreign||[]),sd=lastv(D.smart_domestic||[]),st=lastv(D.smart_total||[]),rh=lastv(D.retail_heat||[]);
+    const sf=at(D.smart_foreign,selIdx),sd=at(D.smart_domestic,selIdx),st=at(D.smart_total,selIdx),rh=at(D.retail_heat,selIdx);
     if(g==='foreign')return sf; if(g==='domestic')return sd; if(g==='retail')return rh;
     return (st==null||rh==null)?null:(st+rh)/2;
   }
@@ -429,15 +443,20 @@
   function renderGauge(){
     if(!D)return;
     const sg=(gGroup==='retail')?'total':gGroup;
-    const sm=lastv(D['smart_'+sg]||[]), rh=lastv(D.retail_heat||[]);
+    const sm=at(D['smart_'+sg],selIdx), rh=at(D.retail_heat,selIdx), fg=at(D.fear_gauge,selIdx);
     let t=gaugeVal(gGroup); if(t!=null)t=Math.round(t*10)/10;
     const gs=document.getElementById('gauge-score');
     if(t==null){gs.textContent='—';}else{gs.textContent=t.toFixed(1);gs.style.color=bandColor(t);}
     const gr=document.getElementById('gauge-regime');gr.textContent=t==null?'—':bandLabel(t);gr.style.color=t==null?'':bandColor(t);
     document.getElementById('gauge-desc').textContent=t==null?'':bandDesc(t);
     setNeedle(t);
+    const svg=document.getElementById('gauge-svg');
+    if(svg)svg.setAttribute('aria-label',`Taiwan market temperature gauge, ${GNAME[gGroup]} reading ${t==null?'no data':t.toFixed(1)}, scale 0 to 10`);
     document.getElementById('ax-smart').textContent=sm==null?'—':sm.toFixed(1);
     document.getElementById('ax-retail').textContent=rh==null?'—':rh.toFixed(1);
+    const af=document.getElementById('ax-fear');
+    if(af){af.textContent=fg==null?'—':fg.toFixed(0);af.style.color=fg==null?'':(fg>=65?'#C2452F':fg<=35?'#1F6C9F':'#888780');}
+    const afs=document.getElementById('ax-fear-s'); if(afs)afs.textContent=fearState(fg);
     document.getElementById('grp-name').textContent='('+GNAME[sg]+')';
   }
   function showExtremes(){
@@ -448,11 +467,22 @@
     if(hot&&cold)el.innerHTML=`All-time hottest ${hot.t.toFixed(1)} · ${D.dates[hot.i]} (TAIEX ${fmt(Math.round(D.taiex[hot.i]))})　|　coldest ${cold.t.toFixed(1)} · ${D.dates[cold.i]} (TAIEX ${fmt(Math.round(D.taiex[cold.i]))})`;
   }
 
+  function initTimeline(){
+    const tl=document.getElementById('tl'); if(!tl||!D||!D.dates)return;
+    let first=0; const sf=D.smart_foreign||[];
+    for(let i=0;i<sf.length;i++){if(sf[i]!=null){first=i;break;}}
+    tl.min=first; tl.max=D.dates.length-1; tl.value=D.dates.length-1; selIdx=D.dates.length-1;
+    const setDate=()=>{const el=document.getElementById('tl-date');if(el)el.textContent='As of '+D.dates[selIdx];};
+    setDate();
+    tl.addEventListener('input',()=>{selIdx=+tl.value;renderGauge();setDate();});
+    const tb=document.getElementById('tl-today');
+    if(tb)tb.addEventListener('click',()=>{selIdx=D.dates.length-1;tl.value=selIdx;renderGauge();setDate();});
+  }
   (async function(){
     let d;
     try{const r=await fetch('../data.json',{cache:'no-store'});const j=await r.json();d=(j&&j.dates&&j.dates.length>=30)?j:genSample();}
     catch(e){d=genSample();}
-    snapshot(d);build(d);renderGauge();showExtremes();
+    snapshot(d);build(d);renderGauge();showExtremes();initTimeline();
     document.querySelectorAll('#grp-seg button').forEach(b=>b.addEventListener('click',()=>{
       document.querySelectorAll('#grp-seg button').forEach(x=>x.classList.remove('on'));
       b.classList.add('on'); gGroup=b.dataset.g; renderGauge();}));

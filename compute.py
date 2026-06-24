@@ -178,8 +178,9 @@ def smart_series_all(inst, fut, idx):
     }
 
 
-def retail_heat_series(taiex, inst, margin, idx):
-    """散戶熱度 0冷~10燙：散戶現貨壓力 + 融資變化 + 量能，252 日分位平均。
+def retail_heat_series(taiex, inst, margin, fut, idx):
+    """散戶熱度 0冷~10燙：散戶現貨壓力 + 融資變化 + 量能 + 散戶期貨方向，252 日分位平均。
+    散戶期貨＝−(三大法人期貨淨額)，期貨為零和市場故由法人倒推（近似散戶＋其他非法人）。
     ⚠ 校準：量能/壓力是『絕對量』會隨大盤長期變大→分位永遠頂高失去鑑別力。
     故先 detrend（除以 60 日均值）再取分位，量測『相對近期常態的高低』。"""
     def pr(s):
@@ -196,18 +197,24 @@ def retail_heat_series(taiex, inst, margin, idx):
     retail_pressure = turnover - tot_net.reindex(turnover.index).abs()
     mm = margin[margin["name"] == "MarginPurchaseMoney"]
     margin_chg = pd.Series(mm["TodayBalance"].astype(float).values, index=mm["date"]).sort_index().diff()
+    # 散戶期貨方向（零和倒推）：散戶 = −(外資 + 投信 + 自營商) 期貨淨額
+    retail_fut = -(_fut_net(fut, "外資").add(_fut_net(fut, "投信"), fill_value=0)
+                   .add(_fut_net(fut, "自營商"), fill_value=0))
     comp = pd.concat([pr(detrend(retail_pressure)).reindex(idx), pr(margin_chg).reindex(idx),
-                      pr(detrend(turnover)).reindex(idx)], axis=1).mean(axis=1)
+                      pr(detrend(turnover)).reindex(idx), pr(retail_fut).reindex(idx)],
+                     axis=1).mean(axis=1)
     return (comp * 10).round(2)
 
 
 def divergence_calc(Dser, Hser):
-    """過熱/過冷＝兩軸背離：divergence = h×(−d)×√(|h||d|)；gauge_pct 0~100。"""
+    """恐慌背離＝散戶熱 − 聰明錢熱（線性差值）。
+    乘積公式在 d=0（聰明錢中性）時退化為固定 50，故改線性差值。
+    gauge 0~100：>50 散戶獨熱（分配頂背離），<50 聰明錢獨熱（吸籌底背離），≈50 同步。"""
     d = (Dser - 5.5) / 4.5
     h = (Hser - 5.0) / 5.0
-    div = h * (-d) * np.sqrt(np.abs(h) * np.abs(d))
-    gauge = (div + 1) / 2 * 100
-    return div.round(3), gauge.round(1)
+    divergence = h - d
+    gauge = ((divergence + 2) / 4 * 100).clip(0, 100)
+    return divergence.round(3), gauge.round(1)
 
 
 def build_series():
@@ -255,7 +262,7 @@ def build_series():
 
     # 散戶熱度 + 過熱/過冷計（恐慌計頁用）
     margin = _read("margin_total.csv")
-    retail = retail_heat_series(taiex, inst, margin, idx)
+    retail = retail_heat_series(taiex, inst, margin, fut, idx)
     div, gauge = divergence_calc(sm["foreign"], retail)
     rh, fg = nn(retail), nn(gauge)
     def _lastv(arr):
