@@ -103,7 +103,6 @@
   .axc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:left;}
   .axc .v{font-family:var(--mono);font-size:24px;font-weight:500;line-height:1;margin-top:6px;}
   .axc .s{font-size:12px;color:var(--muted);margin-top:6px;}
-  .extremes{margin-top:13px;font-family:var(--mono);font-size:11px;color:var(--faint);text-align:center;line-height:1.7;}
   #hist-chart{width:100%;height:300px;margin:4px 0;}
   .view-switch{position:absolute;right:12px;bottom:10px;display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;background:var(--surface);z-index:3;}
   .view-switch button{font-family:var(--mono);font-size:11px;padding:4px 11px;border:0;background:transparent;color:var(--faint);cursor:pointer;line-height:1.4;}
@@ -165,7 +164,6 @@
       <div class="scale"><span>0–2 過冷</span><span>4–6 中性</span><span>8–10 過熱</span></div>
       </div>
       <div id="hist-view" style="display:none;"><div id="hist-chart"></div></div>
-      <div class="extremes" id="extremes"></div>
       <div class="view-switch" id="view-seg"><button class="on" data-v="gauge">溫度計</button><button data-v="hist">走勢</button></div>
     </div>
     <div class="axes">
@@ -473,13 +471,6 @@
     const afs=document.getElementById('ax-fear-s'); if(afs)afs.textContent=fearState(fg);
     document.getElementById('grp-name').textContent='（'+GNAME[sg]+'）';
   }
-  function showExtremes(){
-    const el=document.getElementById('extremes'); if(!el||!D||!D.dates)return;
-    const st=D.smart_total||[], rh=D.retail_heat||[]; let hot=null,cold=null;
-    for(let i=0;i<D.dates.length;i++){ if(st[i]==null||rh[i]==null)continue; const v=(st[i]+rh[i])/2;
-      if(!hot||v>hot.t)hot={t:v,i}; if(!cold||v<cold.t)cold={t:v,i}; }
-    if(hot&&cold)el.innerHTML=`史上最熱 ${hot.t.toFixed(1)} · ${D.dates[hot.i]}（加權 ${fmt(Math.round(D.taiex[hot.i]))}）　|　最冷 ${cold.t.toFixed(1)} · ${D.dates[cold.i]}（加權 ${fmt(Math.round(D.taiex[cold.i]))}）`;
-  }
 
   let histChart=null,histSeries=null;
   const HIST_DAYS=126;                    // 歷史走勢預設半年(≈126交易日)；日後付費解鎖更長
@@ -513,7 +504,7 @@
     let d;
     try{const r=await fetch('./data.json',{cache:'no-store'});const j=await r.json();d=(j&&j.dates&&j.dates.length>=30)?j:genSample();}
     catch(e){d=genSample();}
-    snapshot(d);build(d);renderGauge();showExtremes();
+    snapshot(d);build(d);renderGauge();
     document.querySelectorAll('#grp-seg button').forEach(b=>b.addEventListener('click',()=>{
       document.querySelectorAll('#grp-seg button').forEach(x=>x.classList.remove('on'));
       b.classList.add('on'); gGroup=b.dataset.g; renderGauge();
