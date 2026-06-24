@@ -104,11 +104,9 @@
   .axc .v{font-family:var(--mono);font-size:24px;font-weight:500;line-height:1;margin-top:6px;}
   .axc .s{font-size:12px;color:var(--muted);margin-top:6px;}
   .extremes{margin-top:13px;font-family:var(--mono);font-size:11px;color:var(--faint);text-align:center;line-height:1.7;}
-  .timeline{max-width:840px;margin:10px auto 2px;display:flex;align-items:center;gap:12px;}
-  .timeline input[type=range]{flex:1;height:4px;accent-color:var(--ink);cursor:pointer;}
-  .tl-date{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap;min-width:104px;text-align:right;}
-  .tl-today{font-family:var(--mono);font-size:11px;padding:3px 9px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--muted);cursor:pointer;}
-  .tl-today:hover{border-color:var(--ink);color:var(--ink);}
+  .hero-controls{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:2px;}
+  .viewseg button{min-width:66px;}
+  #hist-chart{width:100%;height:300px;margin:4px 0;}
   .sec-divider{border-top:1px solid var(--border);margin:26px 0 16px;padding-top:16px;}
   .sec-divider .lbl{color:var(--muted);}
   @media (max-width:560px){.axes{grid-template-columns:1fr;} .gauge-score{font-size:40px;}}
@@ -145,8 +143,12 @@
   <div class="updated" id="updated">Updated —</div>
 
   <div class="hero">
-    <div class="seg" id="grp-seg"><button data-g="foreign">Foreign</button><button data-g="domestic">Domestic</button><button data-g="retail">Retail</button><button class="on" data-g="total">Total</button></div>
+    <div class="hero-controls">
+      <div class="seg" id="grp-seg"><button data-g="foreign">Foreign</button><button data-g="domestic">Domestic</button><button data-g="retail">Retail</button><button class="on" data-g="total">Total</button></div>
+      <div class="seg viewseg" id="view-seg"><button class="on" data-v="gauge">Gauge</button><button data-v="hist">History</button></div>
+    </div>
     <div class="gcard">
+      <div id="gauge-view">
       <svg id="gauge-svg" width="100%" viewBox="0 0 480 250" role="img" aria-label="Taiwan market temperature gauge, 0 to 10" style="max-width:580px;">
         <path d="M80,210 A160,160 0 0,1 110.6,116" fill="none" stroke="#1F6C9F" stroke-width="34"/>
         <path d="M110.6,116 A160,160 0 0,1 190.6,57.8" fill="none" stroke="#5DA9C9" stroke-width="34"/>
@@ -163,12 +165,9 @@
       <div class="gauge-regime" id="gauge-regime">—</div>
       <div class="gauge-desc" id="gauge-desc"></div>
       <div class="scale"><span>0–2 Cold</span><span>4–6 Neutral</span><span>8–10 Hot</span></div>
+      </div>
+      <div id="hist-view" style="display:none;"><div id="hist-chart"></div></div>
       <div class="extremes" id="extremes"></div>
-    </div>
-    <div class="timeline">
-      <input type="range" id="tl" min="0" max="0" value="0" step="1" aria-label="Select observation date, drag to replay historical temperature">
-      <span class="tl-date" id="tl-date">—</span>
-      <button class="tl-today" id="tl-today" title="Back to latest trading day">Today</button>
     </div>
     <div class="axes">
       <div class="axc"><span class="lbl">Smart-money positioning <span id="grp-name">(Total)</span></span><div class="v" id="ax-smart">—</div><div class="s">1 short — 10 long</div></div>
@@ -467,25 +466,48 @@
     if(hot&&cold)el.innerHTML=`All-time hottest ${hot.t.toFixed(1)} · ${D.dates[hot.i]} (TAIEX ${fmt(Math.round(D.taiex[hot.i]))})　|　coldest ${cold.t.toFixed(1)} · ${D.dates[cold.i]} (TAIEX ${fmt(Math.round(D.taiex[cold.i]))})`;
   }
 
-  function initTimeline(){
-    const tl=document.getElementById('tl'); if(!tl||!D||!D.dates)return;
-    let first=0; const sf=D.smart_foreign||[];
-    for(let i=0;i<sf.length;i++){if(sf[i]!=null){first=i;break;}}
-    tl.min=first; tl.max=D.dates.length-1; tl.value=D.dates.length-1; selIdx=D.dates.length-1;
-    const setDate=()=>{const el=document.getElementById('tl-date');if(el)el.textContent='As of '+D.dates[selIdx];};
-    setDate();
-    tl.addEventListener('input',()=>{selIdx=+tl.value;renderGauge();setDate();});
-    const tb=document.getElementById('tl-today');
-    if(tb)tb.addEventListener('click',()=>{selIdx=D.dates.length-1;tl.value=selIdx;renderGauge();setDate();});
+  let histChart=null,histSeries=null;
+  function tempSeriesFor(g){
+    const sf=D.smart_foreign||[],sd=D.smart_domestic||[],st=D.smart_total||[],rh=D.retail_heat||[];
+    const out=[];
+    for(let i=0;i<D.dates.length;i++){
+      let v=null;
+      if(g==='foreign')v=sf[i]; else if(g==='domestic')v=sd[i]; else if(g==='retail')v=rh[i];
+      else v=(st[i]==null||rh[i]==null)?null:(st[i]+rh[i])/2;
+      if(v!=null)out.push({time:D.dates[i],value:Math.round(v*100)/100});
+    }
+    return out;
+  }
+  function renderHist(){
+    const el=document.getElementById('hist-chart'),LC=window.LightweightCharts;
+    if(!el||!LC||!D)return;
+    if(!histChart){
+      histChart=LC.createChart(el,{autoSize:true,height:300,
+        layout:{background:{color:THEME.bg},textColor:THEME.text,fontFamily:"'JetBrains Mono',monospace"},
+        grid:{vertLines:{color:THEME.grid},horzLines:{color:THEME.grid}},
+        rightPriceScale:{borderColor:THEME.border},timeScale:{borderColor:THEME.border},
+        handleScroll:false,handleScale:false});
+      histSeries=histChart.addLineSeries({color:'#1A1A18',lineWidth:2,priceFormat:{type:'price',precision:1,minMove:0.1}});
+      [[8,'#C2452F'],[5,'#C9C6BE'],[2,'#1F6C9F']].forEach(pc=>histSeries.createPriceLine({price:pc[0],color:pc[1],lineWidth:1,lineStyle:LC.LineStyle.Dashed,axisLabelVisible:false}));
+    }
+    histSeries.setData(tempSeriesFor(gGroup));
+    histChart.timeScale().fitContent();
   }
   (async function(){
     let d;
     try{const r=await fetch('../data.json',{cache:'no-store'});const j=await r.json();d=(j&&j.dates&&j.dates.length>=30)?j:genSample();}
     catch(e){d=genSample();}
-    snapshot(d);build(d);renderGauge();showExtremes();initTimeline();
+    snapshot(d);build(d);renderGauge();showExtremes();
     document.querySelectorAll('#grp-seg button').forEach(b=>b.addEventListener('click',()=>{
       document.querySelectorAll('#grp-seg button').forEach(x=>x.classList.remove('on'));
-      b.classList.add('on'); gGroup=b.dataset.g; renderGauge();}));
+      b.classList.add('on'); gGroup=b.dataset.g; renderGauge();
+      if(document.getElementById('hist-view').style.display!=='none')renderHist();}));
+    document.querySelectorAll('#view-seg button').forEach(b=>b.addEventListener('click',()=>{
+      document.querySelectorAll('#view-seg button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');const hist=b.dataset.v==='hist';
+      document.getElementById('gauge-view').style.display=hist?'none':'';
+      document.getElementById('hist-view').style.display=hist?'':'none';
+      if(hist)renderHist();}));
     document.querySelectorAll('.tf').forEach(b=>b.addEventListener('click',()=>{
       document.querySelectorAll('.tf').forEach(x=>x.classList.remove('active'));b.classList.add('active');setTF(b.dataset.tf);}));
     document.querySelectorAll('.tg').forEach(b=>b.addEventListener('click',()=>{
