@@ -154,8 +154,8 @@ def _fut_net(fut, role):
     return big.add(mini, fill_value=0).sort_index()
 
 def smart_series_all(inst, fut, idx):
-    """三組法人方向（各為「現貨+期貨淨額」的 252 日分位 → 1空~10多）：
-    外資 / 內資(投信+自營) / 加總(三大法人)。透明、可解釋。"""
+    """三組聰明錢方向（各為「現貨+期貨淨額」的 252 日分位 → 1空~10多）：
+    外資 / 自營(self+避險；投信移入散戶) / 加總(外資+自營)。透明、可解釋。"""
     def pr(s):
         s = s[~s.index.duplicated()].sort_index()
         return s.rolling(WINDOW, min_periods=60).rank(pct=True)
@@ -166,15 +166,15 @@ def smart_series_all(inst, fut, idx):
         return (1 + sc * 9).round(2)
     fs = _spot_net(inst, "Foreign_Investor")
     ts = _spot_net(inst, "Investment_Trust")
-    ds = _spot_net(inst, "Dealer")
+    ds = _spot_net(inst, "Dealer_self").add(_spot_net(inst, "Dealer_Hedging"), fill_value=0)  # 自營 self+避險
     ff = _fut_net(fut, "外資")
     tf = _fut_net(fut, "投信")
     dfu = _fut_net(fut, "自營商")
     return {
         "foreign":  score(fs, ff),
-        "domestic": score(ts.add(ds, fill_value=0), tf.add(dfu, fill_value=0)),
-        "total":    score(fs.add(ts, fill_value=0).add(ds, fill_value=0),
-                          ff.add(tf, fill_value=0).add(dfu, fill_value=0)),
+        "domestic": score(ds, dfu),                          # 自營 self+避險（投信移入散戶熱度）
+        "total":    score(fs.add(ds, fill_value=0),          # 聰明錢加總＝外資＋自營
+                          ff.add(dfu, fill_value=0)),
     }
 
 
@@ -198,10 +198,14 @@ def retail_heat_series(taiex, inst, margin, fut, idx):
     mm = margin[margin["name"] == "MarginPurchaseMoney"]
     margin_chg = pd.Series(mm["TodayBalance"].astype(float).values, index=mm["date"]).sort_index().diff()
     # 散戶期貨方向（零和倒推）：散戶 = −(外資 + 投信 + 自營商) 期貨淨額
+    # 註：投信「期貨」屬基金避險仍留法人側扣除；只有投信「現貨」歸散戶
     retail_fut = -(_fut_net(fut, "外資").add(_fut_net(fut, "投信"), fill_value=0)
                    .add(_fut_net(fut, "自營商"), fill_value=0))
+    # 投信現貨淨買超：ETF/基金申贖≈散戶 FOMO → 第 5 軸
+    trust_spot = _spot_net(inst, "Investment_Trust")
     comp = pd.concat([pr(detrend(retail_pressure)).reindex(idx), pr(margin_chg).reindex(idx),
-                      pr(detrend(turnover)).reindex(idx), pr(retail_fut).reindex(idx)],
+                      pr(detrend(turnover)).reindex(idx), pr(retail_fut).reindex(idx),
+                      pr(trust_spot).reindex(idx)],
                      axis=1).mean(axis=1)
     return (comp * 10).round(2)
 

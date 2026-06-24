@@ -144,7 +144,7 @@
   <div class="updated" id="updated">Updated —</div>
 
   <div class="hero">
-    <div class="seg" id="grp-seg"><button data-g="foreign">Foreign</button><button data-g="domestic">Domestic</button><button data-g="retail">Retail</button><button class="on" data-g="total">Total</button></div>
+    <div class="seg" id="grp-seg"><button data-g="foreign">Foreign</button><button data-g="domestic">Dealer</button><button data-g="retail">Retail</button><button class="on" data-g="total">Total</button></div>
     <div class="gcard">
       <div id="gauge-view">
       <svg id="gauge-svg" width="100%" viewBox="0 0 480 250" role="img" aria-label="Taiwan market temperature gauge, 0 to 10" style="max-width:580px;">
@@ -209,7 +209,7 @@
     </div>
     <div id="sec-smart">
       <div class="panel-cap"><span class="lbl">Smart-money positioning (1 short — 10 long)</span>
-        <span class="gex-smooth" id="sm-grp"><button class="on" data-s="foreign">Foreign</button><button data-s="domestic">Domestic</button><button data-s="total">Total</button></span>
+        <span class="gex-smooth" id="sm-grp"><button class="on" data-s="foreign">Foreign</button><button data-s="domestic">Dealer</button><button data-s="total">Total</button></span>
       </div>
       <div id="panel-smart"></div>
     </div>
@@ -420,7 +420,7 @@
   }
 
   // ── market temperature gauge (hero) ──
-  const GNAME={foreign:'Foreign',domestic:'Domestic',retail:'Retail',total:'Total'};
+  const GNAME={foreign:'Foreign',domestic:'Dealer',retail:'Retail',total:'Total'};
   const lastv=a=>{for(let i=a.length-1;i>=0;i--)if(a[i]!=null)return a[i];return null;};
   let selIdx=null;                       // timeline selected index (null = latest day)
   const at=(a,i)=>{if(!a)return null;const j=(i==null?a.length-1:i);return a[j]==null?null:a[j];};

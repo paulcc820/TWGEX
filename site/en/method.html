@@ -59,9 +59,9 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
 {"@type":"Question","name":"What is GEX (Gamma Exposure)?","acceptedAnswer":{"@type":"Answer","text":"GEX (Gamma Exposure) measures the total gamma that option market-makers hold to stay position-neutral. It is aggregated strike by strike as Black-Scholes gamma multiplied by open interest, expressed as the NT$ amount (in millions) adjusted per one-point move in the index. Only options more than two days from expiry and near at-the-money are included."}},
-{"@type":"Question","name":"How is smart-money positioning calculated?","acceptedAnswer":{"@type":"Answer","text":"The combined net position (spot plus futures) of Taiwan's three institutional groups — foreign investors, investment trusts and dealers — is ranked against its own 252-trading-day history and mapped to 1-10 (1 most short, 10 most long). It can be viewed for foreign, domestic (trusts plus dealers), or all three combined. Data from TWSE and TAIFEX."}},
+{"@type":"Question","name":"How is smart-money positioning calculated?","acceptedAnswer":{"@type":"Answer","text":"The combined net position (spot plus futures) of foreign investors and dealers is ranked against its own 252-trading-day history and mapped to 1-10 (1 most short, 10 most long). It can be viewed for foreign, dealer, or both combined. Investment trusts — driven by retail subscription flows — are counted under retail heat instead. Data from TWSE and TAIFEX."}},
 {"@type":"Question","name":"How does TWVIX (HV21) differ from the official TAIFEX VIX?","acceptedAnswer":{"@type":"Answer","text":"TWGEX's TWVIX is the annualised standard deviation of the index's daily returns over the last 21 trading days (realized volatility, HV21) — volatility that has already occurred. The official TAIFEX VIX is implied volatility derived from option prices, measuring expected future volatility. This site shows the former, not the official VIX."}},
-{"@type":"Question","name":"How is the market temperature gauge calculated?","acceptedAnswer":{"@type":"Answer","text":"Market temperature is the average of smart-money positioning and retail heat, mapped to 0-10 (0 coldest, 10 hottest). Retail heat is the average of four 252-day percentile ranks: retail spot absorption, change in margin balance, overall turnover, and retail futures direction (inferred as the zero-sum inverse of the three institutional groups' net futures). Updated each trading day after close."}},
+{"@type":"Question","name":"How is the market temperature gauge calculated?","acceptedAnswer":{"@type":"Answer","text":"Market temperature is the average of smart-money positioning and retail heat, mapped to 0-10 (0 coldest, 10 hottest). Retail heat is the average of five 252-day percentile ranks: retail spot absorption, change in margin balance, overall turnover, retail futures direction (inferred as the zero-sum inverse of the three institutional groups' net futures), and investment-trust net spot buying. Updated each trading day after close."}},
 {"@type":"Question","name":"What is fear divergence?","acceptedAnswer":{"@type":"Answer","text":"Fear divergence measures the gap between retail heat and smart-money positioning, mapped to 0-100. Above 50 means retail is hotter than smart money; below 50 means smart money is hotter than retail; around 50 means the two are in sync. It describes the relative sentiment gap only, not a price forecast."}}
 ]}
 </script>
@@ -89,10 +89,10 @@
 
   <dl>
     <dt>Smart-money positioning</dt>
-    <dd>The combined net position (spot + futures) of the three institutional groups — foreign investors, investment trusts, and dealers — ranked against its own 252-trading-day history and mapped to 1–10. It can be computed for foreign investors, domestic institutions (trusts + dealers), or all three combined.</dd>
+    <dd>The combined net position (spot + futures) of foreign investors and dealers, ranked against its own 252-trading-day history and mapped to 1–10. It can be viewed for foreign, dealer, or both combined. Investment trusts — dominated by ETFs/funds whose flows are driven by retail subscriptions — are counted under retail heat instead.</dd>
 
     <dt>Retail heat</dt>
-    <dd>The average of four 252-day percentile ranks — retail spot absorption, change in margin balance, overall turnover, and retail futures direction — mapped to 0–10. Retail futures direction is inferred as the zero-sum inverse of the three institutional groups' net futures position.</dd>
+    <dd>The average of five 252-day percentile ranks — retail spot absorption, change in margin balance, overall turnover, retail futures direction, and investment-trust net spot buying — mapped to 0–10. Retail futures direction is inferred as the zero-sum inverse of the three institutional groups' net futures; investment-trust net buying reflects ETF/fund subscription flows driven by retail.</dd>
 
     <dt>Market temperature</dt>
     <dd>The average of smart-money positioning and retail heat — the headline "Total" reading — mapped to 0–10; foreign, domestic and retail can each also be read on their own. Switchable between a daily gauge and a historical trend line.</dd>
@@ -118,6 +118,7 @@
     <p>· GEX includes only options <span class="k">more than 2 days from expiry and near at-the-money</span>; deep out-of-the-money and last-day contracts are excluded.</p>
     <p>· In retail heat, the <span class="k">margin-balance change is a supplementary input</span> — an increase may reflect either active buying or margin top-ups.</p>
     <p>· Retail futures direction is the <span class="k">zero-sum inverse of the three institutional groups' net futures</span>, a proxy for retail (including other non-institutional positions), not retail's own filed data.</p>
+    <p>· Investment-trust <span class="k">spot</span> flow is counted as retail (ETF/active-fund subscriptions are retail-driven); investment-trust <span class="k">futures</span> are fund hedging and stay on the institutional side. Smart money covers foreign and dealers only.</p>
     <p>· TWVIX is a self-computed volatility proxy (HV21), <span class="k">not the official TAIFEX volatility index</span>.</p>
     <p>· GEX history begins in 2024, shorter than the index.</p>
     <p>· All content is a compilation and computation of public market data; it <span class="k">contains no analysis or advice on individual securities and is not investment advice</span>. See <a href="./about.html" style="border-bottom:1px solid var(--ink);">About</a>.</p>
