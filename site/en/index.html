@@ -175,6 +175,15 @@
 
   <div class="sec-divider"><span class="lbl">Market structure (advanced) · Index × GEX × Smart money × Retail direction × TWVIX</span></div>
 
+  <div class="snap" id="snap">
+    <div><span class="lbl">Index</span><div class="v" id="s-taiex">—</div></div>
+    <div><span class="lbl">Volume</span><div class="v" id="s-vol">—</div></div>
+    <div><span class="lbl">Margin balance</span><div class="v" id="s-margin">—</div></div>
+    <div><span class="lbl">Margin Δ</span><div class="v" id="s-marginchg">—</div></div>
+    <div><span class="lbl">GEX</span><div class="v" id="s-gex">—</div></div>
+    <div><span class="lbl">Smart money</span><div class="v" id="s-smart">—</div></div>
+  </div>
+
   <div class="controls">
     <div class="tfbar">
       <button class="tf" data-tf="6m">6M</button>
@@ -220,13 +229,6 @@
       <div class="panel-cap"><span class="lbl">TWVIX · 21-day annualised volatility (HV21, %)</span></div>
       <div id="panel-vix"></div>
     </div>
-  </div>
-
-  <div class="snap" id="snap">
-    <div><span class="lbl">Index</span><div class="v" id="s-taiex">—</div></div>
-    <div><span class="lbl">Volume</span><div class="v" id="s-vol">—</div></div>
-    <div><span class="lbl">GEX</span><div class="v" id="s-gex">—</div></div>
-    <div><span class="lbl">Smart money</span><div class="v" id="s-smart">—</div></div>
   </div>
 
   <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:24px;font-size:13px;color:var(--muted);">Definitions and methodology for the temperature gauge, GEX, smart money and volume profile are on the <a href="./method.html" style="border-bottom:1px solid var(--ink);">Methodology</a> page.</div>
@@ -426,6 +428,8 @@
     document.getElementById('s-taiex').textContent=fmt(last(d.taiex));
     document.getElementById('s-vol').textContent=(v=>v==null?'—':'NT$'+fmt(Math.round(v/10))+'B')(last(d.taiex_turnover_bn||[]));
     document.getElementById('s-smart').textContent=(v=>v==null?'—':v.toFixed(1))(last(d.smart_money));
+    document.getElementById('s-margin').textContent=(v=>v==null?'—':'NT$'+fmt(Math.round(v/10))+'B')(last(d.margin_bal||[]));
+    document.getElementById('s-marginchg').textContent=(v=>v==null?'—':(v>=0?'+NT$':'−NT$')+Math.abs(v/10).toFixed(1)+'B')(last(d.margin_chg||[]));
     document.getElementById('updated').textContent='Updated '+d.dates[d.dates.length-1];
     if(d.meta&&d.meta.gex_since)document.getElementById('gex-since').textContent='← GEX data since '+d.meta.gex_since+' (index since 2010)';
     // dealer-sign note lives on the Methodology page

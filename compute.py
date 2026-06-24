@@ -284,6 +284,12 @@ def build_series():
     margin = _read("margin_total.csv")
     retail = retail_heat_series(taiex, inst, margin, fut, idx)
     retail_dir = retail_dir_series(fut, idx)
+    mm = margin[margin["name"] == "MarginPurchaseMoney"]
+    mbal = pd.Series(pd.to_numeric(mm["TodayBalance"], errors="coerce").values / 1e8,
+                     index=pd.DatetimeIndex(mm["date"]))
+    mbal = mbal[~mbal.index.duplicated()].sort_index().reindex(idx)
+    margin_bal = mbal.round(1)          # 融資餘額（億）
+    margin_chg = mbal.diff().round(2)   # 融資日變動（億）
     div, gauge = divergence_calc(sm["foreign"], retail)
     rh, fg = nn(retail), nn(gauge)
     def _lastv(arr):
@@ -293,6 +299,7 @@ def build_series():
         return None
     D_last, H_last, g_last, hv_last = _lastv(sm_f), _lastv(rh), _lastv(fg), _lastv(nn(hv21))
     RD_last = _lastv(nn(retail_dir))
+    MB_last, MC_last = _lastv(nn(margin_bal)), _lastv(nn(margin_chg))
     regime = "neutral"
     if D_last is not None and H_last is not None:
         dd, hh = (D_last - 5.5) / 4.5, (H_last - 5) / 5
@@ -314,7 +321,8 @@ def build_series():
             "today": {"regime": regime,
                       "fear_score": (None if g_last is None else round(g_last / 10, 1)),
                       "fear_gauge": g_last, "retail_heat": H_last,
-                      "smart_foreign": D_last, "retail_dir": RD_last, "hv21": hv_last},
+                      "smart_foreign": D_last, "retail_dir": RD_last,
+                      "margin_bal": MB_last, "margin_chg": MC_last, "hv21": hv_last},
         },
         "dates": dates,
         "taiex": [round(float(v), 2) for v in px],
@@ -327,6 +335,8 @@ def build_series():
         "smart_total": nn(sm["total"]),
         "retail_heat": rh,
         "retail_dir": nn(retail_dir),
+        "margin_bal": nn(margin_bal),
+        "margin_chg": nn(margin_chg),
         "fear_gauge": fg,
         "hv21_proxy": nn(hv21),
     }

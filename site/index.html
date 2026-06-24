@@ -175,6 +175,15 @@
 
   <div class="sec-divider"><span class="lbl">市場結構（進階）· 大盤 × GEX × 聰明錢 × 散戶方向 × 台VIX</span></div>
 
+  <div class="snap" id="snap">
+    <div><span class="lbl">大盤</span><div class="v" id="s-taiex">—</div></div>
+    <div><span class="lbl">成交量</span><div class="v" id="s-vol">—</div></div>
+    <div><span class="lbl">融資餘額</span><div class="v" id="s-margin">—</div></div>
+    <div><span class="lbl">融資日變動</span><div class="v" id="s-marginchg">—</div></div>
+    <div><span class="lbl">GEX 結構</span><div class="v" id="s-gex">—</div></div>
+    <div><span class="lbl">聰明錢方向</span><div class="v" id="s-smart">—</div></div>
+  </div>
+
   <div class="controls">
     <div class="tfbar">
       <button class="tf" data-tf="6m">半年</button>
@@ -220,13 +229,6 @@
       <div class="panel-cap"><span class="lbl">台VIX · 波動率 HV21（%，21 日年化）</span></div>
       <div id="panel-vix"></div>
     </div>
-  </div>
-
-  <div class="snap" id="snap">
-    <div><span class="lbl">大盤</span><div class="v" id="s-taiex">—</div></div>
-    <div><span class="lbl">成交量</span><div class="v" id="s-vol">—</div></div>
-    <div><span class="lbl">GEX 結構</span><div class="v" id="s-gex">—</div></div>
-    <div><span class="lbl">聰明錢方向</span><div class="v" id="s-smart">—</div></div>
   </div>
 
   <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:24px;font-size:13px;color:var(--muted);">市場溫度、GEX、聰明錢、量價結構等各指標的定義與計算原理，見 <a href="./method.html" style="border-bottom:1px solid var(--ink);">說明</a> 頁。</div>
@@ -428,6 +430,8 @@
     document.getElementById('s-vol').textContent=(v=>v==null?'—':fmt(Math.round(v))+'億')(last(d.taiex_turnover_bn||[]));
     document.getElementById('s-gex').textContent=(v=>v==null?'—':v.toFixed(1)+'B')(last(d.gex_total));
     document.getElementById('s-smart').textContent=(v=>v==null?'—':v.toFixed(1))(last(d.smart_money));
+    document.getElementById('s-margin').textContent=(v=>v==null?'—':fmt(Math.round(v))+'億')(last(d.margin_bal||[]));
+    document.getElementById('s-marginchg').textContent=(v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'億')(last(d.margin_chg||[]));
     document.getElementById('updated').textContent='最後更新 '+d.dates[d.dates.length-1];
     if(d.meta&&d.meta.gex_since)document.getElementById('gex-since').textContent='← GEX 資料自 '+d.meta.gex_since+' 起（大盤自 2010 起）';
     // dealer-sign 方向註記見「說明」頁
