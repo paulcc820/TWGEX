@@ -114,11 +114,9 @@
   .sec-divider{border-top:1px solid var(--border);margin:26px 0 16px;padding-top:16px;}
   .sec-divider .lbl{color:var(--muted);}
   @media (max-width:560px){.axes{grid-template-columns:1fr;} .gauge-score{font-size:40px;} .view-switch{margin:10px auto 0;}}
-  /* Price profile 左側條形圖 */
-  .panelA-wrap{display:flex;align-items:stretch;gap:0;}
-  #profile-sidebar{position:relative;width:0;min-width:0;overflow:hidden;transition:width 0.2s,min-width 0.2s;flex-shrink:0;}
-  #profile-canvas{display:block;}
-  #profile-legend{position:absolute;bottom:4px;left:0;right:0;font-family:var(--mono);font-size:9px;color:var(--faint);text-align:center;pointer-events:none;}
+  /* Price profile：右側 overlay，與量價分布(價值區)同 Y 對齊 */
+  #profile-canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5;}
+  #profile-legend{position:absolute;top:8px;right:64px;font-family:var(--mono);font-size:9px;color:var(--faint);pointer-events:none;z-index:6;}
   /* 固定底部錨定廣告 anchor ad（隨頁面固定於底部） */
   body{padding-bottom:84px;}
   #anchor-ad{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;justify-content:center;background:rgba(247,246,243,.94);backdrop-filter:saturate(1.05) blur(8px);-webkit-backdrop-filter:saturate(1.05) blur(8px);border-top:1px solid var(--border);padding:9px 12px;}
@@ -215,10 +213,7 @@
   <div class="panelwrap">
     <div id="sec-taiex">
       <div class="panel-cap"><span class="lbl">加權指數 TAIEX · 量價結構</span></div>
-      <div class="panelA-wrap">
-        <div id="profile-sidebar"><canvas id="profile-canvas"></canvas><div id="profile-legend"></div></div>
-        <div class="panelA" style="flex:1;min-width:0;position:relative;"><div id="panel-taiex"></div><svg id="vp-overlay"></svg><div id="panelA-legend" class="pa-legend"></div></div>
-      </div>
+      <div class="panelA"><div id="panel-taiex"></div><svg id="vp-overlay"></svg><canvas id="profile-canvas"></canvas><div id="panelA-legend" class="pa-legend"></div><div id="profile-legend"></div></div>
     </div>
     <div id="sec-gex">
       <div class="panel-cap"><span class="lbl">台股 GEX · 結構部位（百萬 / 點）</span>
@@ -399,67 +394,47 @@
   // Y 軸對齊策略：使用 taiexS.priceToCoordinate() 直接對齊 lightweight-charts 座標，
   // 避免 scale margins（volume histogram 占用下方空間）導致的線性插值偏移。
   function drawPriceProfile(){
-    const sidebar=document.getElementById('profile-sidebar');
     const canvas=document.getElementById('profile-canvas');
-    if(!canvas||!sidebar)return;
+    if(!canvas||!cA||!taiexS)return;
     const showMargin=ST.margin_profile, showForeign=ST.foreign_short_profile;
-    const twoOn=showMargin&&showForeign;
-    const W=(!showMargin&&!showForeign)?0:(twoOn?132:66);   // 兩開132 / 一開66 / 全關0
-    // 只在側欄寬度「真的改變」時才 resize 主圖（避免拖動/縮放每幀堆疊 setTimeout 抖動）
-    if(parseInt(sidebar.style.width||'0',10)!==W){
-      sidebar.style.width=W+'px'; sidebar.style.minWidth=W+'px';
-      sidebar.classList.toggle('visible',W>0);
-      clearTimeout(window._profResizeT);
-      window._profResizeT=setTimeout(()=>{               // 等 CSS width transition 完成→resize 主圖→用新座標重畫
-        if(cA)cA.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
-        requestAnimationFrame(drawPriceProfile);
-      },230);
-    }
+    const panel=document.getElementById('panel-taiex');
+    const cw=panel.clientWidth||640, H=panel.clientHeight||420;
     const dpr=window.devicePixelRatio||1;
-    const H=document.getElementById('panel-taiex').clientHeight||420;
-    canvas.style.width=W+'px'; canvas.style.height=H+'px';
-    canvas.width=Math.max(1,W*dpr); canvas.height=H*dpr;     // 實體像素×dpr，Retina 不糊
-    const ctx=canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
-    if(W===0||!D||!cA||!taiexS)return;
+    canvas.style.width=cw+'px'; canvas.style.height=H+'px';
+    canvas.width=Math.max(1,cw*dpr); canvas.height=H*dpr;   // 實體像素×dpr，Retina 不糊
+    const ctx=canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,cw,H);
+    if((!showMargin&&!showForeign)||!D)return;
     const BIN=500; // 與 compute.py PROFILE_BIN 一致
-
-    // 用 taiexS.priceToCoordinate 做 Y 軸對齊；每條 bin 各自算高度（吃 zoom、不靠等距假設）
-    function renderBars(profile, colorPos, colorNeg, xOffset, barMaxW){
+    const scaleW=(cA.priceScale('right').width?cA.priceScale('right').width():56)||56;
+    const volZone=Math.min(150,(cw-scaleW)*0.32);   // 量價分布(價值區)占的寬，與 drawProfile 一致
+    const colW=46;                                   // 每個 profile 欄寬
+    // priceToCoordinate 與主圖/量價分布同 Y 對齊；每條 bin 各自算高度(吃 zoom)；自右錨往左畫
+    function renderBars(profile, colorPos, colorNeg, rightAnchor){
       if(!profile||!profile.length)return;
       const visible=[];
-      for(const b of profile){
-        const y=taiexS.priceToCoordinate(b.level);
-        if(y==null||y<0||y>H)continue;
-        visible.push({...b,y});
-      }
+      for(const b of profile){const y=taiexS.priceToCoordinate(b.level);if(y==null||y<0||y>H)continue;visible.push({...b,y});}
       if(!visible.length)return;
       const maxAbs=Math.max(...visible.map(b=>Math.abs(b.delta)));
       if(maxAbs<=0)return;
       visible.forEach(b=>{
         const yTop=taiexS.priceToCoordinate(b.level+BIN/2), yBot=taiexS.priceToCoordinate(b.level-BIN/2);
-        let binPx=(yTop!=null&&yBot!=null)?Math.abs(yBot-yTop):8;
-        binPx=Math.max(2,Math.min(binPx*0.88,40));
-        const barW=Math.abs(b.delta)/maxAbs*barMaxW;
-        ctx.globalAlpha=0.62; ctx.fillStyle=b.delta>=0?colorPos:colorNeg;
-        ctx.fillRect(xOffset, b.y-binPx/2, barW, binPx);
+        let binPx=(yTop!=null&&yBot!=null)?Math.abs(yBot-yTop):8; binPx=Math.max(2,Math.min(binPx*0.86,40));
+        const barW=Math.abs(b.delta)/maxAbs*(colW-4);
+        ctx.globalAlpha=0.6; ctx.fillStyle=b.delta>=0?colorPos:colorNeg;
+        ctx.fillRect(rightAnchor-barW, b.y-binPx/2, barW, binPx);
       });
       ctx.globalAlpha=1;
     }
-
-    const halfW=twoOn?Math.floor(W/2)-1:W-2;
-    if(showMargin) renderBars(D.margin_profile,'#346538','#9F2F2D',1,halfW);
-    if(showForeign){
-      const xOff=twoOn?Math.floor(W/2)+1:1;
-      // 外資：Δ 正=淨加多→藍(#1F6C9F)；Δ 負=淨加空→紅(#C2452F)
-      renderBars(D.foreign_short_profile,'#1F6C9F','#C2452F',xOff,halfW);
-    }
-
+    // 排在量價分布(右側)左邊、與其同 Y 對齊：外資最左、融資次之
+    let anchor=(cw-scaleW-2)-volZone-8;
+    if(showForeign){ renderBars(D.foreign_short_profile,'#1F6C9F','#C2452F',anchor); anchor-=colW+6; }
+    if(showMargin){ renderBars(D.margin_profile,'#346538','#9F2F2D',anchor); }
     const leg=document.getElementById('profile-legend');
     if(leg){
       const parts=[];
       if(showMargin)parts.push('<span style="color:#346538">▌</span><span style="color:#9F2F2D">▌</span>融資±');
       if(showForeign)parts.push('<span style="color:#1F6C9F">▌</span><span style="color:#C2452F">▌</span>外資期Δ');
-      leg.innerHTML=parts.join(' ');
+      leg.innerHTML=parts.join('　');
     }
   }
 
