@@ -297,7 +297,7 @@
 
     cB=LC.createChart(document.getElementById('panel-gex'),{...common,width:W(),height:150});
     gexSeries=cB.addAreaSeries({topColor:'rgba(159,47,45,0.18)',bottomColor:'rgba(159,47,45,0.02)',lineColor:'#9F2F2D',lineWidth:1,priceFormat:{type:'price',precision:1,minMove:0.1}});
-    gexSeries.setData(pair(d.dates,d.gex_total));
+    gexSeries.setData(pair(d.dates,d.gex_disp));
     gexSeries.createPriceLine({price:0,color:'#B5B2AA',lineWidth:1,lineStyle:LC.LineStyle.Solid,axisLabelVisible:false});
 
     cC=LC.createChart(document.getElementById('panel-smart'),{...common,width:W(),height:120});
@@ -429,8 +429,8 @@
     const pkc=profileMode==='margin'?(peak.value>=0?'#346538':'#9F2F2D'):(peak.value>=0?'#1F6C9F':'#C2452F');
     label(right-pw-6,peak.y+3,profileMode==='margin'?'Margin':'Foreign',pkc);
     if(leg)leg.innerHTML=profileMode==='margin'
-      ?'<span style="color:#346538">▌</span>Added <span style="color:#9F2F2D">▌</span>Cut　Margin (by price)'
-      :'<span style="color:#1F6C9F">▌</span>+Long <span style="color:#C2452F">▌</span>+Short　Foreign (by price)';
+      ?'<span style="color:#346538">▌</span>Added <span style="color:#9F2F2D">▌</span>Cut　Margin Δ (NT$100M/bin)'
+      :'<span style="color:#1F6C9F">▌</span>+Long <span style="color:#C2452F">▌</span>+Short　Foreign Δ (lots/bin)';
   }
 
   function smoothGEX(n){
@@ -484,7 +484,11 @@
     if(!g||isNaN(g)){el.textContent='Updated '+last; return;}
     const mins=Math.max(1,Math.round((Date.now()-g.getTime())/60000));
     const rel=mins<60?mins+' min ago':mins<1440?Math.floor(mins/60)+' hr ago':Math.floor(mins/1440)+' d ago';
-    if(mins>36*60){el.classList.add('stale-txt');el.innerHTML='<span class="live-dot stale"></span>Data may be out of date · last '+last;}
+    // data_as_of = last trading day; flag stale only if older than 4 days (covers weekends/holidays)
+    const dao=d.meta&&d.meta.data_as_of;
+    const dataAge=dao?Math.round((Date.now()-new Date(dao+'T00:00:00Z').getTime())/86400000):0;
+    const isStale=mins>36*60||dataAge>4;
+    if(isStale){el.classList.add('stale-txt');el.innerHTML='<span class="live-dot stale"></span>Data may be out of date · last '+last;}
     else{el.classList.remove('stale-txt');el.innerHTML='<span class="live-dot"></span>Updated '+rel+' · '+last;}
   }
   function snapshot(d){
@@ -495,7 +499,7 @@
     document.getElementById('s-margin').textContent=(v=>v==null?'—':'NT$'+fmt(Math.round(v/10))+'B')(last(d.margin_bal||[]));
     document.getElementById('s-marginchg').textContent=(v=>v==null?'—':(v>=0?'+NT$':'−NT$')+Math.abs(v/10).toFixed(1)+'B')(last(d.margin_chg||[]));
     setFreshness(d);
-    if(d.meta&&d.meta.gex_since)document.getElementById('gex-since').textContent='← GEX data since '+d.meta.gex_since+' (index since 2010)';
+    if(d.meta&&d.meta.gex_since)document.getElementById('gex-since').textContent='← GEX data since '+d.meta.gex_since+' (index since '+(d.meta.taiex_since||'').slice(0,4)+')';
     // dealer-sign note lives on the Methodology page
   }
 

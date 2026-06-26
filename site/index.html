@@ -430,8 +430,8 @@
     const pkc=profileMode==='margin'?(peak.value>=0?'#346538':'#9F2F2D'):(peak.value>=0?'#1F6C9F':'#C2452F');
     label(right-pw-6,peak.y+3,profileMode==='margin'?'融資':'外資',pkc);
     if(leg)leg.innerHTML=profileMode==='margin'
-      ?'<span style="color:#346538">▌</span>淨增 <span style="color:#9F2F2D">▌</span>淨減　融資Δ(千股/格)'
-      :'<span style="color:#1F6C9F">▌</span>淨加多 <span style="color:#C2452F">▌</span>淨加空　外資期Δ(口/格)';
+      ?'<span style="color:#346538">▌</span>淨增 <span style="color:#9F2F2D">▌</span>淨減　融資Δ(億/格)'
+      :'<span style="color:#1F6C9F">▌</span>淨加多 <span style="color:#C2452F">▌</span>淨加空　外資Δ(口/格)';
   }
 
   function smoothGEX(n){
