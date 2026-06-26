@@ -74,8 +74,10 @@
   .pa-legend{position:absolute;top:8px;left:12px;z-index:5;font-family:var(--mono);font-size:12px;color:var(--ink);background:rgba(247,246,243,0.82);padding:3px 8px;border-radius:5px;pointer-events:none;}
   .pa-legend b{font-weight:500;}
   #vp-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:4;}
-  /* Price profile: right-side overlay, Y-aligned with the volume profile */
-  #profile-canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5;}
+  /* Horizontal profile 3-in-1 selector (Volume / Margin / Foreign net) */
+  .prof-sel{display:inline-flex;gap:4px;flex-wrap:wrap;}
+  .prof-sel button{font-family:var(--mono);font-size:10px;padding:2px 7px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;border-radius:4px;}
+  .prof-sel button.on{border-color:var(--ink);color:var(--ink);}
   #profile-legend{position:absolute;bottom:6px;left:12px;font-family:var(--mono);font-size:9px;color:var(--faint);pointer-events:none;z-index:6;}
   a[id^="tv-attr-logo"]{display:none!important;}
   .snap{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:18px 0 22px;}
@@ -199,21 +201,20 @@
     </div>
     <div class="toggles" id="toggles">
       <button class="tg on" data-k="vol"><span class="dot"></span>Volume</button>
-      <button class="tg on" data-k="vp"><span class="dot"></span>Profile</button>
       <button class="tg on" data-k="pin"><span class="dot"></span>Gamma center</button>
       <button class="tg on" data-k="gex"><span class="dot"></span>GEX</button>
       <button class="tg on" data-k="smart"><span class="dot"></span>Smart money</button>
       <button class="tg on" data-k="rdir"><span class="dot"></span>Retail dir</button>
       <button class="tg on" data-k="vix"><span class="dot"></span>TWVIX</button>
-      <button class="tg" data-k="margin_profile"><span class="dot"></span>Margin map</button>
-      <button class="tg" data-k="foreign_short_profile"><span class="dot"></span>Foreign net</button>
     </div>
   </div>
 
   <div class="panelwrap">
     <div id="sec-taiex">
-      <div class="panel-cap"><span class="lbl">TAIEX · price &amp; volume profile</span></div>
-      <div class="panelA"><div id="panel-taiex"></div><svg id="vp-overlay"></svg><canvas id="profile-canvas"></canvas><div id="panelA-legend" class="pa-legend"></div><div id="profile-legend"></div></div>
+      <div class="panel-cap"><span class="lbl">TAIEX · price &amp; volume profile</span>
+        <span class="prof-sel" id="prof-sel"><button data-m="off">Off</button><button class="on" data-m="volume">Volume</button><button data-m="margin">Margin</button><button data-m="foreign">Foreign net</button></span>
+      </div>
+      <div class="panelA"><div id="panel-taiex"></div><svg id="vp-overlay"></svg><div id="panelA-legend" class="pa-legend"></div><div id="profile-legend"></div></div>
     </div>
     <div id="sec-gex">
       <div class="panel-cap"><span class="lbl">Gamma Exposure (GEX) · NT$M per index point</span>
@@ -272,7 +273,8 @@
   }
 
   let D,cA,cB,cC,cD,cE,taiexS,volS,pinS,gexSeries,smS,vixSeries,rdS,gexShown,smartShown,charts=[];
-  const ST={vol:true,vp:true,pin:true,gex:true,smart:true,rdir:true,vix:true,margin_profile:false,foreign_short_profile:false};
+  const ST={vol:true,pin:true,gex:true,smart:true,rdir:true,vix:true};
+  let profileMode='volume';   // right-side horizontal profile mode: off/volume/margin/foreign (default volume)
   function pair(dates,vals){return dates.map((t,i)=>(vals[i]==null)?{time:t}:{time:t,value:vals[i]});}
 
   function build(d){
@@ -349,46 +351,76 @@
     cD.subscribeCrosshairMove(p=>sync(cD,p));
     cE.subscribeCrosshairMove(p=>sync(cE,p));
 
-    cA.timeScale().subscribeVisibleLogicalRangeChange(()=>{requestAnimationFrame(drawProfile);requestAnimationFrame(drawPriceProfile);});
-    window.addEventListener('resize',()=>{charts.forEach(c=>c.applyOptions({width:W()}));requestAnimationFrame(drawProfile);requestAnimationFrame(drawPriceProfile);});
+    cA.timeScale().subscribeVisibleLogicalRangeChange(()=>{requestAnimationFrame(drawProfile);});
+    window.addEventListener('resize',()=>{charts.forEach(c=>c.applyOptions({width:W()}));requestAnimationFrame(drawProfile);});
     smoothGEX(10);
     setSmart('foreign');
     setTF('6m');
   }
 
+  // ── Right-side horizontal profile (3-in-1: Volume / Margin / Foreign net) ──
+  // All drawn into the #vp-overlay SVG, Y-aligned with the chart via taiexS.priceToCoordinate().
+  // volume = volume distribution over the visible window; margin/foreign = compute.py 500-pt level bins (value).
   function drawProfile(){
     const ov=document.getElementById('vp-overlay');ov.innerHTML='';
-    if(!D||!ST.vp||!cA||!taiexS)return;
-    const lr=cA.timeScale().getVisibleLogicalRange();if(!lr)return;
-    const i0=Math.max(0,Math.floor(lr.from)),i1=Math.min(D.dates.length-1,Math.ceil(lr.to));
-    if(i1<=i0)return;
-    let pmin=Infinity,pmax=-Infinity;
-    for(let i=i0;i<=i1;i++){const p=D.taiex[i];if(p<pmin)pmin=p;if(p>pmax)pmax=p;}
-    if(!isFinite(pmin)||pmax<=pmin)return;
-    const BINS=26,bins=new Array(BINS).fill(0);
-    for(let i=i0;i<=i1;i++){const p=D.taiex[i],v=(D.taiex_turnover_bn&&D.taiex_turnover_bn[i])||1;
-      let b=Math.floor((p-pmin)/(pmax-pmin)*BINS);b=Math.max(0,Math.min(BINS-1,b));bins[b]+=v;}
-    const maxv=Math.max(...bins);if(maxv<=0)return;
+    const leg=document.getElementById('profile-legend');if(leg)leg.innerHTML='';
+    if(!D||profileMode==='off'||!cA||!taiexS)return;
     const cw=ov.clientWidth||document.getElementById('panel-taiex').clientWidth;
+    const H=document.getElementById('panel-taiex').clientHeight||420;
     const scaleW=(cA.priceScale('right').width?cA.priceScale('right').width():56)||56;
     const right=cw-scaleW-2, maxBar=Math.min(150,(cw-scaleW)*0.32);
-    const binH=(pmax-pmin)/BINS;
-    for(let b=0;b<BINS;b++){
-      if(bins[b]<=0)continue;
-      const pc=pmin+(b+0.5)*binH;
-      const y=taiexS.priceToCoordinate(pc);if(y==null)continue;
-      const w=bins[b]/maxv*maxBar, h=Math.max(2,(420/(pmax-pmin))*binH*0.86);
-      const r=document.createElementNS(SVGNS,'rect');
-      r.setAttribute('x',right-w);r.setAttribute('y',y-h/2);r.setAttribute('width',w);r.setAttribute('height',h);
-      r.setAttribute('fill','#1F6C9F');r.setAttribute('opacity', b===bins.indexOf(maxv)?'0.46':'0.28');
-      ov.appendChild(r);
-      if(b===bins.indexOf(maxv)){
-        const tx=document.createElementNS(SVGNS,'text');
-        tx.setAttribute('x',right-w-6);tx.setAttribute('y',y+3);tx.setAttribute('text-anchor','end');
-        tx.setAttribute('font-size','10');tx.setAttribute('fill','#1F6C9F');tx.setAttribute('font-family','Helvetica Neue,Arial,sans-serif');
-        tx.textContent='Value area';ov.appendChild(tx);
+    const rect=(x,y,w,h,fill,op)=>{const r=document.createElementNS(SVGNS,'rect');
+      r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',w);r.setAttribute('height',h);
+      r.setAttribute('fill',fill);r.setAttribute('opacity',op);ov.appendChild(r);};
+    const label=(x,y,t,fill)=>{const tx=document.createElementNS(SVGNS,'text');
+      tx.setAttribute('x',x);tx.setAttribute('y',y);tx.setAttribute('text-anchor','end');tx.setAttribute('font-size','10');
+      tx.setAttribute('fill',fill);tx.setAttribute('font-family','Helvetica Neue,Arial,sans-serif');tx.textContent=t;ov.appendChild(tx);};
+
+    if(profileMode==='volume'){
+      const lr=cA.timeScale().getVisibleLogicalRange();if(!lr)return;
+      const i0=Math.max(0,Math.floor(lr.from)),i1=Math.min(D.dates.length-1,Math.ceil(lr.to));
+      if(i1<=i0)return;
+      let pmin=Infinity,pmax=-Infinity;
+      for(let i=i0;i<=i1;i++){const p=D.taiex[i];if(p<pmin)pmin=p;if(p>pmax)pmax=p;}
+      if(!isFinite(pmin)||pmax<=pmin)return;
+      const BINS=26,bins=new Array(BINS).fill(0);
+      for(let i=i0;i<=i1;i++){const p=D.taiex[i],v=(D.taiex_turnover_bn&&D.taiex_turnover_bn[i])||1;
+        let b=Math.floor((p-pmin)/(pmax-pmin)*BINS);b=Math.max(0,Math.min(BINS-1,b));bins[b]+=v;}
+      const maxv=Math.max(...bins);if(maxv<=0)return;
+      const binH=(pmax-pmin)/BINS, peak=bins.indexOf(maxv);
+      for(let b=0;b<BINS;b++){
+        if(bins[b]<=0)continue;
+        const pc=pmin+(b+0.5)*binH;
+        const y=taiexS.priceToCoordinate(pc);if(y==null)continue;
+        const w=bins[b]/maxv*maxBar, h=Math.max(2,(420/(pmax-pmin))*binH*0.86);
+        rect(right-w,y-h/2,w,h,'#1F6C9F',b===peak?'0.46':'0.28');
+        if(b===peak)label(right-w-6,y+3,'Value area','#1F6C9F');
       }
+      if(leg)leg.innerHTML='<span style="color:#1F6C9F">▌</span>Volume profile';
+      return;
     }
+
+    // margin / foreign: compute.py 500-pt level bins (value)
+    const prof=profileMode==='margin'?D.margin_profile:D.foreign_short_profile;
+    if(!prof||!prof.length)return;
+    const BIN=500, vis=[];
+    for(const b of prof){const y=taiexS.priceToCoordinate(b.level);if(y==null||y<0||y>H)continue;vis.push({...b,y});}
+    if(!vis.length)return;
+    const maxAbs=Math.max(...vis.map(b=>Math.abs(b.value)));if(maxAbs<=0)return;
+    let peak=vis[0];for(const b of vis)if(Math.abs(b.value)>Math.abs(peak.value))peak=b;
+    vis.forEach(b=>{
+      const yt=taiexS.priceToCoordinate(b.level+BIN/2),yb=taiexS.priceToCoordinate(b.level-BIN/2);
+      let h=(yt!=null&&yb!=null)?Math.abs(yb-yt):8;h=Math.max(2,Math.min(h*0.86,40));
+      const w=Math.abs(b.value)/maxAbs*maxBar;
+      const fill=profileMode==='margin'?'#346538':(b.value>=0?'#1F6C9F':'#C2452F');
+      rect(right-w,b.y-h/2,w,h,fill,b===peak?'0.5':'0.32');
+    });
+    const pw=Math.abs(peak.value)/maxAbs*maxBar;
+    label(right-pw-6,peak.y+3,profileMode==='margin'?'Margin':'Foreign',
+      profileMode==='margin'?'#346538':(peak.value>=0?'#1F6C9F':'#C2452F'));
+    if(leg)leg.innerHTML=profileMode==='margin'
+      ?'<span style="color:#346538">▌</span>Margin balance (avg by price)'
+      :'<span style="color:#1F6C9F">▌</span>Long <span style="color:#C2452F">▌</span>Short　Foreign net';
   }
 
   function smoothGEX(n){
@@ -410,47 +442,6 @@
     const el=document.getElementById('s-smart'); if(el)el.textContent=last==null?'—':last.toFixed(1);
   }
 
-  function drawPriceProfile(){
-    const canvas=document.getElementById('profile-canvas');
-    if(!canvas||!cA||!taiexS)return;
-    const showMargin=ST.margin_profile, showForeign=ST.foreign_short_profile;
-    const panel=document.getElementById('panel-taiex');
-    const cw=panel.clientWidth||640, H=panel.clientHeight||420;
-    const dpr=window.devicePixelRatio||1;
-    canvas.style.width=cw+'px'; canvas.style.height=H+'px';
-    canvas.width=Math.max(1,cw*dpr); canvas.height=H*dpr;
-    const ctx=canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,cw,H);
-    if((!showMargin&&!showForeign)||!D)return;
-    const BIN=500, colW=46;   // BIN matches PROFILE_BIN in compute.py; per-column width
-    // priceToCoordinate keeps the same Y as the chart; per-bar height (zoom-aware); drawn left-to-right
-    function renderBars(profile, colorPos, colorNeg, leftAnchor){
-      if(!profile||!profile.length)return;
-      const visible=[];
-      for(const b of profile){const y=taiexS.priceToCoordinate(b.level);if(y==null||y<0||y>H)continue;visible.push({...b,y});}
-      if(!visible.length)return;
-      const maxAbs=Math.max(...visible.map(b=>Math.abs(b.value)));
-      if(maxAbs<=0)return;
-      visible.forEach(b=>{
-        const yTop=taiexS.priceToCoordinate(b.level+BIN/2), yBot=taiexS.priceToCoordinate(b.level-BIN/2);
-        let binPx=(yTop!=null&&yBot!=null)?Math.abs(yBot-yTop):8; binPx=Math.max(2,Math.min(binPx*0.86,40));
-        const barW=Math.abs(b.value)/maxAbs*(colW-4);
-        ctx.globalAlpha=0.6; ctx.fillStyle=b.value>=0?colorPos:colorNeg;
-        ctx.fillRect(leftAnchor, b.y-binPx/2, barW, binPx);
-      });
-      ctx.globalAlpha=1;
-    }
-    // left side, same Y as the chart: margin leftmost, foreign next (drawn rightward from the left edge)
-    let anchor=2;
-    if(showMargin){ renderBars(D.margin_profile,'#346538','#9F2F2D',anchor); anchor+=colW+6; }
-    if(showForeign){ renderBars(D.foreign_short_profile,'#1F6C9F','#C2452F',anchor); }
-    const leg=document.getElementById('profile-legend');
-    if(leg){
-      const parts=[];
-      if(showMargin)parts.push('<span style="color:#346538">▌</span>Margin bal');
-      if(showForeign)parts.push('<span style="color:#1F6C9F">▌</span><span style="color:#C2452F">▌</span>Foreign net');
-      leg.innerHTML=parts.join('　');
-    }
-  }
   function setTF(tf){
     if(!charts.length||!D)return;
     const n=D.dates.length;
@@ -458,7 +449,7 @@
     const plotW=Math.max(200,(document.getElementById('panel-taiex').clientWidth||640)-60);
     const bs=Math.max(0.25, plotW/bars);
     charts.forEach(c=>{try{c.timeScale().applyOptions({barSpacing:bs,rightOffset:2});c.timeScale().scrollToPosition(0,false);}catch(e){}});
-    requestAnimationFrame(drawProfile);requestAnimationFrame(drawPriceProfile);
+    requestAnimationFrame(drawProfile);
   }
 
   function applyToggles(){
@@ -472,7 +463,7 @@
     if(ST.rdir&&cE)cE.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
     document.getElementById('sec-vix').style.display=ST.vix?'':'none';
     if(ST.vix&&cD)cD.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
-    requestAnimationFrame(drawProfile);requestAnimationFrame(drawPriceProfile);
+    requestAnimationFrame(drawProfile);
   }
 
   function setFreshness(d){
@@ -590,6 +581,9 @@
     document.querySelectorAll('#sm-grp button').forEach(b=>b.addEventListener('click',()=>{
       document.querySelectorAll('#sm-grp button').forEach(x=>x.classList.remove('on'));
       b.classList.add('on'); setSmart(b.dataset.s);}));
+    document.querySelectorAll('#prof-sel button').forEach(b=>b.addEventListener('click',()=>{
+      document.querySelectorAll('#prof-sel button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on'); profileMode=b.dataset.m; requestAnimationFrame(drawProfile);}));
   })();
 </script>
 <div id="anchor-ad" role="complementary" aria-label="Advertisement"><div class="inner"><button class="x" aria-label="Close ad" onclick="document.getElementById('anchor-ad').remove();document.body.style.paddingBottom='0';">×</button>Ad · pending AdSense</div></div>
