@@ -383,17 +383,19 @@
       let pmin=Infinity,pmax=-Infinity;
       for(let i=i0;i<=i1;i++){const p=D.taiex[i];if(p<pmin)pmin=p;if(p>pmax)pmax=p;}
       if(!isFinite(pmin)||pmax<=pmin)return;
-      const BINS=26,bins=new Array(BINS).fill(0);
+      const BINS=40,bins=new Array(BINS).fill(0);
       for(let i=i0;i<=i1;i++){const p=D.taiex[i],v=(D.taiex_turnover_bn&&D.taiex_turnover_bn[i])||1;
         let b=Math.floor((p-pmin)/(pmax-pmin)*BINS);b=Math.max(0,Math.min(BINS-1,b));bins[b]+=v;}
       const maxv=Math.max(...bins);if(maxv<=0)return;
       const binH=(pmax-pmin)/BINS, peak=bins.indexOf(maxv);
+      const yT=taiexS.priceToCoordinate(pmax),yB=taiexS.priceToCoordinate(pmin);
+      const barH=(yT!=null&&yB!=null)?Math.max(1,Math.abs(yB-yT)/BINS*0.8):6;  // actual px spacing ×0.8, gap = no overlap
       for(let b=0;b<BINS;b++){
         if(bins[b]<=0)continue;
         const pc=pmin+(b+0.5)*binH;
         const y=taiexS.priceToCoordinate(pc);if(y==null)continue;
-        const w=bins[b]/maxv*maxBar, h=Math.max(2,(420/(pmax-pmin))*binH*0.86);
-        rect(right-w,y-h/2,w,h,'#1F6C9F',b===peak?'0.46':'0.28');
+        const w=bins[b]/maxv*maxBar;
+        rect(right-w,y-barH/2,w,barH,'#1F6C9F',b===peak?'0.46':'0.28');
         if(b===peak)label(right-w-6,y+3,'Value area','#1F6C9F');
       }
       if(leg)leg.innerHTML='<span style="color:#1F6C9F">▌</span>Volume profile';
