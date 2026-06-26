@@ -403,17 +403,25 @@
     // margin / foreign: compute.py 500-pt level bins (value)
     const prof=profileMode==='margin'?D.margin_profile:D.foreign_short_profile;
     if(!prof||!prof.length)return;
+    const lr=cA.timeScale().getVisibleLogicalRange();if(!lr)return;
+    const i0=Math.max(0,Math.floor(lr.from)),i1=Math.min(D.dates.length-1,Math.ceil(lr.to));
+    let pmin=Infinity,pmax=-Infinity;
+    for(let i=i0;i<=i1;i++){const p=D.taiex[i];if(p<pmin)pmin=p;if(p>pmax)pmax=p;}
+    if(!isFinite(pmin)||pmax<=pmin)return;
+    const yTopG=taiexS.priceToCoordinate(pmax),yBotG=taiexS.priceToCoordinate(pmin);
+    if(yTopG==null||yBotG==null)return;
     const BIN=500, vis=[];
-    for(const b of prof){const y=taiexS.priceToCoordinate(b.level);if(y==null||y<0||y>H)continue;vis.push({...b,y});}
+    for(const b of prof){if(b.level<pmin||b.level>pmax)continue;const y=taiexS.priceToCoordinate(b.level);if(y==null)continue;vis.push({...b,y});}
     if(!vis.length)return;
     const maxAbs=Math.max(...vis.map(b=>Math.abs(b.value)));if(maxAbs<=0)return;
     let peak=vis[0];for(const b of vis)if(Math.abs(b.value)>Math.abs(peak.value))peak=b;
     vis.forEach(b=>{
       const yt=taiexS.priceToCoordinate(b.level+BIN/2),yb=taiexS.priceToCoordinate(b.level-BIN/2);
       let h=(yt!=null&&yb!=null)?Math.abs(yb-yt):8;h=Math.max(2,Math.min(h*0.86,40));
+      const top=Math.max(yTopG,b.y-h/2),bot=Math.min(yBotG,b.y+h/2);if(bot<=top)return;
       const w=Math.abs(b.value)/maxAbs*maxBar;
       const fill=profileMode==='margin'?(b.value>=0?'#346538':'#9F2F2D'):(b.value>=0?'#1F6C9F':'#C2452F');
-      rect(right-w,b.y-h/2,w,h,fill,b===peak?'0.5':'0.32');
+      rect(right-w,top,w,bot-top,fill,b===peak?'0.5':'0.32');
     });
     const pw=Math.abs(peak.value)/maxAbs*maxBar;
     const pkc=profileMode==='margin'?(peak.value>=0?'#346538':'#9F2F2D'):(peak.value>=0?'#1F6C9F':'#C2452F');
