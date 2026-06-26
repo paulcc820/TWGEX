@@ -65,7 +65,7 @@
 ]}
 </script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Dataset","name":"Taiwan Equity Market Structure Dataset — GEX, Institutional Flow, Realized Volatility","description":"Daily-updated dataset: TAIEX options Gamma Exposure (GEX), institutional investor net positioning (foreign/investment trust/dealers), retail heat index, and 21-day realized volatility. Derived from TWSE and TAIFEX public data.","url":"https://twgex.com/method.html","license":"https://data.gov.tw/license","creator":{"@type":"Organization","name":"TWGEX","url":"https://twgex.com"},"temporalCoverage":"2019-01-01/..","spatialCoverage":"Taiwan","keywords":["GEX","gamma exposure","台股","三大法人","選擇權","已實現波動率","恐慌背離","TAIEX","TAIFEX"],"variableMeasured":["GEX","Smart Money Score","Retail Heat","Retail Direction","Market Temperature","Fear Divergence","HV21"]}
+{"@context":"https://schema.org","@type":"Dataset","name":"Taiwan Equity Market Structure Dataset — GEX, Institutional Flow, Realized Volatility","description":"Daily-updated dataset: TAIEX options Gamma Exposure (GEX), institutional investor net positioning (foreign/investment trust/dealers), retail heat index, and 21-day realized volatility. Derived from TWSE and TAIFEX public data.","url":"https://twgex.com/method.html","license":"https://data.gov.tw/license","creator":{"@type":"Organization","name":"TWGEX","url":"https://twgex.com"},"temporalCoverage":"2019-01-01/..","spatialCoverage":"Taiwan","keywords":["GEX","gamma exposure","台股","三大法人","選擇權","已實現波動率","恐慌背離","TAIEX","TAIFEX"],"variableMeasured":["GEX","Smart Money Score","Retail Heat","Retail Direction","Market Temperature","Fear Divergence","Margin Map","Foreign Futures Delta","HV21"]}
 </script>
 </head>
 <body>
@@ -110,6 +110,12 @@
 
     <dt>量價結構<span class="en">volume profile</span></dt>
     <dd>垂直量為時間軸上的每日成交金額；橫向量（Volume Profile）為成交量在價格軸上的分布，其中成交最密集的價位帶為「價值區」。</dd>
+
+    <dt>融資地圖<span class="en">margin map</span></dt>
+    <dd>加權指數圖左側可切換的橫條：每日融資餘額（張數）淨增減，依當日指數點位以 500 點分箱累積。綠＝該價位融資淨增加（散戶加碼），紅＝淨減少（去槓桿／斷頭）。概估槓桿資金大致在哪些點位進出；當日變動歸入當日點位（近似），側欄對齊主圖可見價格範圍，切換「全部」時間軸可見完整分布。</dd>
+
+    <dt>外資期貨Δ<span class="en">foreign futures Δ</span></dt>
+    <dd>左側可切換橫條：外資台指期淨部位（大台＋小台＋微台，市值權重）每日變動，依點位 500 點分箱累積。藍＝該價位外資淨加多，紅＝淨加空。概估外資在哪些點位增減期貨布局；近似與可見範圍行為同融資地圖。</dd>
 
     <dt>台VIX · 波動率<span class="en">HV21</span></dt>
     <dd>加權指數近 21 個交易日報酬率的年化標準差。</dd>

@@ -66,7 +66,7 @@
 ]}
 </script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Dataset","name":"Taiwan Equity Market Structure Dataset — GEX, Institutional Flow, Realized Volatility","description":"Daily-updated dataset: TAIEX options Gamma Exposure (GEX), institutional investor net positioning (foreign/investment trust/dealers), retail heat index, and 21-day realized volatility. Derived from TWSE and TAIFEX public data.","url":"https://twgex.com/en/method.html","license":"https://data.gov.tw/license","creator":{"@type":"Organization","name":"TWGEX","url":"https://twgex.com"},"temporalCoverage":"2019-01-01/..","spatialCoverage":"Taiwan","keywords":["GEX","gamma exposure","Taiwan stocks","institutional investors","options","realized volatility","fear divergence","TAIEX","TAIFEX"],"variableMeasured":["GEX","Smart Money Score","Retail Heat","Retail Direction","Market Temperature","Fear Divergence","HV21"]}
+{"@context":"https://schema.org","@type":"Dataset","name":"Taiwan Equity Market Structure Dataset — GEX, Institutional Flow, Realized Volatility","description":"Daily-updated dataset: TAIEX options Gamma Exposure (GEX), institutional investor net positioning (foreign/investment trust/dealers), retail heat index, and 21-day realized volatility. Derived from TWSE and TAIFEX public data.","url":"https://twgex.com/en/method.html","license":"https://data.gov.tw/license","creator":{"@type":"Organization","name":"TWGEX","url":"https://twgex.com"},"temporalCoverage":"2019-01-01/..","spatialCoverage":"Taiwan","keywords":["GEX","gamma exposure","Taiwan stocks","institutional investors","options","realized volatility","fear divergence","TAIEX","TAIFEX"],"variableMeasured":["GEX","Smart Money Score","Retail Heat","Retail Direction","Market Temperature","Fear Divergence","Margin Map","Foreign Futures Delta","HV21"]}
 </script>
 </head>
 <body>
@@ -111,6 +111,12 @@
 
     <dt>Volume profile</dt>
     <dd>Vertical volume is daily turnover over time; horizontal volume (volume profile) is the distribution of traded volume across price, whose thickest band is the value area.</dd>
+
+    <dt>Margin map</dt>
+    <dd>Toggleable horizontal bars on the left of the index chart: the daily net change in outstanding margin balance (shares), binned by the index level on that day (500-point bins). Green = net margin added at that level (retail leveraging up); red = net margin reduced (deleveraging or forced liquidation). It approximates where leveraged money entered or exited. Each day's change is attributed to that day's level, and the sidebar aligns to the chart's visible price range — switch to the "All" timeframe for the full distribution.</dd>
+
+    <dt>Foreign futures Δ</dt>
+    <dd>Toggleable left-hand bars: the daily change in foreign investors' net TAIEX-futures position (large + mini + micro contracts, value-weighted), binned by index level. Blue = foreign net buying (added longs or covered shorts) at that level; red = net selling (added shorts). It maps where foreign desks built or unwound futures exposure. Same approximation and visible-range behaviour as the margin map.</dd>
 
     <dt>TWVIX · volatility (HV21)</dt>
     <dd>The annualised standard deviation of the index's daily returns over the last 21 trading days.</dd>

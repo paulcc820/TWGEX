@@ -255,38 +255,35 @@ def margin_profile(margin, taiex):
 
 
 def foreign_short_profile(fut, taiex):
-    """外資期貨空單地圖：每日外資（臺指+小型臺指×1/4）net_oi 變動，累積到 500 點 bin。
-    net_oi 負值表示外資空頭佔優（short > long）。
-    注意：取 net_oi 的日差（Δnet_oi）代表每日增減動作。
-    傳回 [{level: bin中心點, delta: 累積Δnet_oi}, ...]。"""
+    """外資期貨淨部位地圖：外資（大台 ＋ 小台×50/200 ＋ 微台×10/200）net_oi 的每日Δ，
+    依當日 taiex 點位累積到 500 點 bin。net_oi＝多單−空單；Δ 正＝當日淨加多、Δ 負＝淨加空。
+    與 _fut_net / retail_dir_series 同口徑（含微型臺指）。
+    傳回 [{level: bin中心, delta: 累積Δ淨口數(大台等值)}, ...]。"""
     fgn = fut[fut["role"] == "外資"].copy()
     fgn = fgn[fgn["date"] >= pd.Timestamp(PROFILE_FUTURES_START)]
 
-    big = fgn[fgn["product"] == "臺股期貨"][["date", "net_oi"]].copy()
-    big = big.rename(columns={"net_oi": "big_net"})
-    mini = fgn[fgn["product"] == "小型臺指"][["date", "net_oi"]].copy()
-    mini = mini.rename(columns={"net_oi": "mini_net"})
-
-    # 合併大台與小台（小台÷4換算大台口數）
-    combined = big.merge(mini, on="date", how="outer")
-    combined["big_net"] = combined["big_net"].fillna(0)
-    combined["mini_net"] = combined["mini_net"].fillna(0)
-    combined["net_combined"] = combined["big_net"] + combined["mini_net"] / 4.0
+    def _prod(p, col):
+        d = fgn[fgn["product"] == p][["date", "net_oi"]].copy()
+        return d.rename(columns={"net_oi": col})
+    combined = (_prod("臺股期貨", "big")
+                .merge(_prod("小型臺指", "mini"), on="date", how="outer")
+                .merge(_prod("微型臺指", "micro"), on="date", how="outer"))
+    for c in ["big", "mini", "micro"]:                          # 防呆 + 缺資料補 0
+        combined[c] = pd.to_numeric(combined[c], errors="coerce").fillna(0)
+    combined["net_combined"] = (combined["big"]
+                                + combined["mini"] * MINI_WEIGHT
+                                + combined["micro"] * MICRO_WEIGHT)
     combined = combined.sort_values("date").reset_index(drop=True)
-    # 取日差（每日增減動作）
-    combined["delta"] = combined["net_combined"].diff()
+    combined["delta"] = combined["net_combined"].diff()        # 僅交易日序列，diff 不跨曆日缺口
     combined = combined.dropna(subset=["delta"])
 
-    tx = taiex[["date", "taiex"]].copy()
-    tx = tx.rename(columns={"taiex": "price"})
+    tx = taiex[["date", "taiex"]].rename(columns={"taiex": "price"})
     merged = combined.merge(tx, on="date", how="inner")
     if merged.empty:
         return []
-
     merged["bin"] = (merged["price"] // PROFILE_BIN) * PROFILE_BIN + PROFILE_BIN / 2
-    agg = merged.groupby("bin")["delta"].sum().reset_index()
-    agg = agg.sort_values("bin")
-    return [{"level": int(row["bin"]), "delta": round(float(row["delta"]), 1)} for _, row in agg.iterrows()]
+    agg = merged.groupby("bin")["delta"].sum().reset_index().sort_values("bin")
+    return [{"level": int(row["bin"]), "delta": round(float(row["delta"]))} for _, row in agg.iterrows()]
 
 
 def divergence_calc(Dser, Hser):

@@ -74,6 +74,11 @@
   .pa-legend{position:absolute;top:8px;left:12px;z-index:5;font-family:var(--mono);font-size:12px;color:var(--ink);background:rgba(247,246,243,0.82);padding:3px 8px;border-radius:5px;pointer-events:none;}
   .pa-legend b{font-weight:500;}
   #vp-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:4;}
+  /* Price profile left sidebar */
+  .panelA-wrap{display:flex;align-items:stretch;gap:0;}
+  #profile-sidebar{position:relative;width:0;min-width:0;overflow:hidden;transition:width 0.2s,min-width 0.2s;flex-shrink:0;}
+  #profile-canvas{display:block;}
+  #profile-legend{position:absolute;bottom:4px;left:0;right:0;font-family:var(--mono);font-size:9px;color:var(--faint);text-align:center;pointer-events:none;}
   a[id^="tv-attr-logo"]{display:none!important;}
   .snap{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:18px 0 22px;}
   .snap > div{background:var(--surface);padding:14px 18px;}
@@ -202,13 +207,18 @@
       <button class="tg on" data-k="smart"><span class="dot"></span>Smart money</button>
       <button class="tg on" data-k="rdir"><span class="dot"></span>Retail dir</button>
       <button class="tg on" data-k="vix"><span class="dot"></span>TWVIX</button>
+      <button class="tg" data-k="margin_profile"><span class="dot"></span>Margin map</button>
+      <button class="tg" data-k="foreign_short_profile"><span class="dot"></span>Foreign fut Δ</button>
     </div>
   </div>
 
   <div class="panelwrap">
     <div id="sec-taiex">
       <div class="panel-cap"><span class="lbl">TAIEX · price &amp; volume profile</span></div>
-      <div class="panelA"><div id="panel-taiex"></div><svg id="vp-overlay"></svg><div id="panelA-legend" class="pa-legend"></div></div>
+      <div class="panelA-wrap">
+        <div id="profile-sidebar"><canvas id="profile-canvas"></canvas><div id="profile-legend"></div></div>
+        <div class="panelA" style="flex:1;min-width:0;position:relative;"><div id="panel-taiex"></div><svg id="vp-overlay"></svg><div id="panelA-legend" class="pa-legend"></div></div>
+      </div>
     </div>
     <div id="sec-gex">
       <div class="panel-cap"><span class="lbl">Gamma Exposure (GEX) · NT$M per index point</span>
@@ -267,7 +277,7 @@
   }
 
   let D,cA,cB,cC,cD,cE,taiexS,volS,pinS,gexSeries,smS,vixSeries,rdS,gexShown,smartShown,charts=[];
-  const ST={vol:true,vp:true,pin:true,gex:true,smart:true,rdir:true,vix:true};
+  const ST={vol:true,vp:true,pin:true,gex:true,smart:true,rdir:true,vix:true,margin_profile:false,foreign_short_profile:false};
   function pair(dates,vals){return dates.map((t,i)=>(vals[i]==null)?{time:t}:{time:t,value:vals[i]});}
 
   function build(d){
@@ -342,8 +352,8 @@
     cD.subscribeCrosshairMove(p=>sync(cD,p));
     cE.subscribeCrosshairMove(p=>sync(cE,p));
 
-    cA.timeScale().subscribeVisibleLogicalRangeChange(()=>requestAnimationFrame(drawProfile));
-    window.addEventListener('resize',()=>{charts.forEach(c=>c.applyOptions({width:W()}));requestAnimationFrame(drawProfile);});
+    cA.timeScale().subscribeVisibleLogicalRangeChange(()=>{requestAnimationFrame(drawProfile);requestAnimationFrame(drawPriceProfile);});
+    window.addEventListener('resize',()=>{charts.forEach(c=>c.applyOptions({width:W()}));requestAnimationFrame(drawProfile);requestAnimationFrame(drawPriceProfile);});
     smoothGEX(10);
     setSmart('foreign');
     setTF('2y');
@@ -403,6 +413,64 @@
     const el=document.getElementById('s-smart'); if(el)el.textContent=last==null?'—':last.toFixed(1);
   }
 
+  function drawPriceProfile(){
+    const sidebar=document.getElementById('profile-sidebar');
+    const canvas=document.getElementById('profile-canvas');
+    if(!canvas||!sidebar)return;
+    const showMargin=ST.margin_profile, showForeign=ST.foreign_short_profile;
+    const twoOn=showMargin&&showForeign;
+    const W=(!showMargin&&!showForeign)?0:(twoOn?132:66);
+    if(parseInt(sidebar.style.width||'0',10)!==W){
+      sidebar.style.width=W+'px'; sidebar.style.minWidth=W+'px';
+      sidebar.classList.toggle('visible',W>0);
+      clearTimeout(window._profResizeT);
+      window._profResizeT=setTimeout(()=>{
+        if(cA)cA.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
+        requestAnimationFrame(drawPriceProfile);
+      },230);
+    }
+    const dpr=window.devicePixelRatio||1;
+    const H=document.getElementById('panel-taiex').clientHeight||320;
+    canvas.style.width=W+'px'; canvas.style.height=H+'px';
+    canvas.width=Math.max(1,W*dpr); canvas.height=H*dpr;
+    const ctx=canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+    if(W===0||!D||!cA||!taiexS)return;
+    const BIN=500; // matches PROFILE_BIN in compute.py
+    function renderBars(profile, colorPos, colorNeg, xOffset, barMaxW){
+      if(!profile||!profile.length)return;
+      const visible=[];
+      for(const b of profile){
+        const y=taiexS.priceToCoordinate(b.level);
+        if(y==null||y<0||y>H)continue;
+        visible.push({...b,y});
+      }
+      if(!visible.length)return;
+      const maxAbs=Math.max(...visible.map(b=>Math.abs(b.delta)));
+      if(maxAbs<=0)return;
+      visible.forEach(b=>{
+        const yTop=taiexS.priceToCoordinate(b.level+BIN/2), yBot=taiexS.priceToCoordinate(b.level-BIN/2);
+        let binPx=(yTop!=null&&yBot!=null)?Math.abs(yBot-yTop):8;
+        binPx=Math.max(2,Math.min(binPx*0.88,40));
+        const barW=Math.abs(b.delta)/maxAbs*barMaxW;
+        ctx.globalAlpha=0.62; ctx.fillStyle=b.delta>=0?colorPos:colorNeg;
+        ctx.fillRect(xOffset, b.y-binPx/2, barW, binPx);
+      });
+      ctx.globalAlpha=1;
+    }
+    const halfW=twoOn?Math.floor(W/2)-1:W-2;
+    if(showMargin) renderBars(D.margin_profile,'#346538','#9F2F2D',1,halfW);
+    if(showForeign){
+      const xOff=twoOn?Math.floor(W/2)+1:1;
+      renderBars(D.foreign_short_profile,'#1F6C9F','#C2452F',xOff,halfW);
+    }
+    const leg=document.getElementById('profile-legend');
+    if(leg){
+      const parts=[];
+      if(showMargin)parts.push('<span style="color:#346538">▌</span><span style="color:#9F2F2D">▌</span>Margin ±');
+      if(showForeign)parts.push('<span style="color:#1F6C9F">▌</span><span style="color:#C2452F">▌</span>Foreign fut Δ');
+      leg.innerHTML=parts.join(' ');
+    }
+  }
   function setTF(tf){
     if(!charts.length||!D)return;
     const n=D.dates.length;
@@ -410,7 +478,7 @@
     const plotW=Math.max(200,(document.getElementById('panel-taiex').clientWidth||640)-60);
     const bs=Math.max(0.25, plotW/bars);
     charts.forEach(c=>{try{c.timeScale().applyOptions({barSpacing:bs,rightOffset:2});c.timeScale().scrollToPosition(0,false);}catch(e){}});
-    requestAnimationFrame(drawProfile);
+    requestAnimationFrame(drawProfile);requestAnimationFrame(drawPriceProfile);
   }
 
   function applyToggles(){
@@ -424,7 +492,7 @@
     if(ST.rdir&&cE)cE.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
     document.getElementById('sec-vix').style.display=ST.vix?'':'none';
     if(ST.vix&&cD)cD.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
-    requestAnimationFrame(drawProfile);
+    requestAnimationFrame(drawProfile);requestAnimationFrame(drawPriceProfile);
   }
 
   function setFreshness(d){

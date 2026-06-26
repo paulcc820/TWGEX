@@ -208,7 +208,7 @@
       <button class="tg on" data-k="rdir"><span class="dot"></span>散戶方向</button>
       <button class="tg on" data-k="vix"><span class="dot"></span>台VIX</button>
       <button class="tg" data-k="margin_profile"><span class="dot"></span>融資地圖</button>
-      <button class="tg" data-k="foreign_short_profile"><span class="dot"></span>外資空單</button>
+      <button class="tg" data-k="foreign_short_profile"><span class="dot"></span>外資期Δ</button>
     </div>
   </div>
 
@@ -402,30 +402,30 @@
     const sidebar=document.getElementById('profile-sidebar');
     const canvas=document.getElementById('profile-canvas');
     if(!canvas||!sidebar)return;
-
     const showMargin=ST.margin_profile, showForeign=ST.foreign_short_profile;
-    if(!showMargin&&!showForeign){sidebar.classList.remove('visible');sidebar.style.width='0';sidebar.style.minWidth='0';return;}
-    sidebar.classList.add('visible');
-
-    if(!D||!cA||!taiexS)return;
-
-    // sidebar 尺寸：兩個都開 = 132px，只一個 = 66px
     const twoOn=showMargin&&showForeign;
-    const W=twoOn?132:66, H=document.getElementById('panel-taiex').clientHeight||320;
-    sidebar.style.width=W+'px'; sidebar.style.minWidth=W+'px';
-    // CSS transition 0.2s 後 panelA clientWidth 才縮到位，需等 transition 完成再通知 cA resize
-    // 若 cA 不 resize，canvas 溢出 flex 容器，右側 price scale 被遮蓋
-    setTimeout(()=>{if(cA)cA.applyOptions({width:document.getElementById('panel-taiex').clientWidth});},220);
-    canvas.width=W; canvas.height=H;
-    const ctx=canvas.getContext('2d');
-    ctx.clearRect(0,0,W,H);
+    const W=(!showMargin&&!showForeign)?0:(twoOn?132:66);   // 兩開132 / 一開66 / 全關0
+    // 只在側欄寬度「真的改變」時才 resize 主圖（避免拖動/縮放每幀堆疊 setTimeout 抖動）
+    if(parseInt(sidebar.style.width||'0',10)!==W){
+      sidebar.style.width=W+'px'; sidebar.style.minWidth=W+'px';
+      sidebar.classList.toggle('visible',W>0);
+      clearTimeout(window._profResizeT);
+      window._profResizeT=setTimeout(()=>{               // 等 CSS width transition 完成→resize 主圖→用新座標重畫
+        if(cA)cA.applyOptions({width:document.getElementById('panel-taiex').clientWidth});
+        requestAnimationFrame(drawPriceProfile);
+      },230);
+    }
+    const dpr=window.devicePixelRatio||1;
+    const H=document.getElementById('panel-taiex').clientHeight||320;
+    canvas.style.width=W+'px'; canvas.style.height=H+'px';
+    canvas.width=Math.max(1,W*dpr); canvas.height=H*dpr;     // 實體像素×dpr，Retina 不糊
+    const ctx=canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+    if(W===0||!D||!cA||!taiexS)return;
+    const BIN=500; // 與 compute.py PROFILE_BIN 一致
 
-    const BIN=500; // must match PROFILE_BIN in compute.py
-
-    // 用 taiexS.priceToCoordinate 做 Y 軸對齊（精確，含 scaleMargins 修正）
+    // 用 taiexS.priceToCoordinate 做 Y 軸對齊；每條 bin 各自算高度（吃 zoom、不靠等距假設）
     function renderBars(profile, colorPos, colorNeg, xOffset, barMaxW){
       if(!profile||!profile.length)return;
-      // 只渲染 priceToCoordinate 有效的 bins（即在當前可見 Y 軸範圍內）
       const visible=[];
       for(const b of profile){
         const y=taiexS.priceToCoordinate(b.level);
@@ -435,38 +435,25 @@
       if(!visible.length)return;
       const maxAbs=Math.max(...visible.map(b=>Math.abs(b.delta)));
       if(maxAbs<=0)return;
-      // 計算 bin 高度：用可見 bins 中相鄰兩個的 Y 距離（精確反映當前 zoom）
-      let yPerBin=8;
-      for(let k=1;k<visible.length;k++){
-        const dy=Math.abs(visible[k].y-visible[k-1].y);
-        if(dy>1){yPerBin=dy;break;}
-      }
-      // 若只有一個 bin 可見，用 BIN 點對應的 Y 差估算
-      if(visible.length===1){
-        const yA=taiexS.priceToCoordinate(visible[0].level+BIN/2);
-        const yB=taiexS.priceToCoordinate(visible[0].level-BIN/2);
-        if(yA!=null&&yB!=null)yPerBin=Math.abs(yB-yA);
-      }
-      const binPx=Math.max(2,Math.min(yPerBin*0.88,40));
       visible.forEach(b=>{
+        const yTop=taiexS.priceToCoordinate(b.level+BIN/2), yBot=taiexS.priceToCoordinate(b.level-BIN/2);
+        let binPx=(yTop!=null&&yBot!=null)?Math.abs(yBot-yTop):8;
+        binPx=Math.max(2,Math.min(binPx*0.88,40));
         const barW=Math.abs(b.delta)/maxAbs*barMaxW;
-        ctx.globalAlpha=0.62;
-        ctx.fillStyle=b.delta>=0?colorPos:colorNeg;
+        ctx.globalAlpha=0.62; ctx.fillStyle=b.delta>=0?colorPos:colorNeg;
         ctx.fillRect(xOffset, b.y-binPx/2, barW, binPx);
       });
       ctx.globalAlpha=1;
     }
 
     const halfW=twoOn?Math.floor(W/2)-1:W-2;
-
     if(showMargin) renderBars(D.margin_profile,'#346538','#9F2F2D',1,halfW);
     if(showForeign){
       const xOff=twoOn?Math.floor(W/2)+1:1;
-      // 外資：delta 正=外資增多（多頭增加）→ 綠；delta 負=外資增空 → 紅
+      // 外資：Δ 正=淨加多→藍(#1F6C9F)；Δ 負=淨加空→紅(#C2452F)
       renderBars(D.foreign_short_profile,'#1F6C9F','#C2452F',xOff,halfW);
     }
 
-    // 圖例文字
     const leg=document.getElementById('profile-legend');
     if(leg){
       const parts=[];
