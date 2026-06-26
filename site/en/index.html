@@ -412,15 +412,15 @@
       const yt=taiexS.priceToCoordinate(b.level+BIN/2),yb=taiexS.priceToCoordinate(b.level-BIN/2);
       let h=(yt!=null&&yb!=null)?Math.abs(yb-yt):8;h=Math.max(2,Math.min(h*0.86,40));
       const w=Math.abs(b.value)/maxAbs*maxBar;
-      const fill=profileMode==='margin'?'#346538':(b.value>=0?'#1F6C9F':'#C2452F');
+      const fill=profileMode==='margin'?(b.value>=0?'#346538':'#9F2F2D'):(b.value>=0?'#1F6C9F':'#C2452F');
       rect(right-w,b.y-h/2,w,h,fill,b===peak?'0.5':'0.32');
     });
     const pw=Math.abs(peak.value)/maxAbs*maxBar;
-    label(right-pw-6,peak.y+3,profileMode==='margin'?'Margin':'Foreign',
-      profileMode==='margin'?'#346538':(peak.value>=0?'#1F6C9F':'#C2452F'));
+    const pkc=profileMode==='margin'?(peak.value>=0?'#346538':'#9F2F2D'):(peak.value>=0?'#1F6C9F':'#C2452F');
+    label(right-pw-6,peak.y+3,profileMode==='margin'?'Margin':'Foreign',pkc);
     if(leg)leg.innerHTML=profileMode==='margin'
-      ?'<span style="color:#346538">▌</span>Margin balance (avg by price)'
-      :'<span style="color:#1F6C9F">▌</span>Long <span style="color:#C2452F">▌</span>Short　Foreign net';
+      ?'<span style="color:#346538">▌</span>Added <span style="color:#9F2F2D">▌</span>Cut　Margin (by price)'
+      :'<span style="color:#1F6C9F">▌</span>+Long <span style="color:#C2452F">▌</span>+Short　Foreign (by price)';
   }
 
   function smoothGEX(n){

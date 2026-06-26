@@ -229,9 +229,10 @@ def retail_dir_series(fut, idx):
     return (1 + pr(retail_net).reindex(idx) * 9).round(2)
 
 
-def _profile_by_price(val, taiex, start):
-    """把逐日水位序列 val(date-indexed) 依當日 taiex 點位 bin 到 PROFILE_BIN，
-    取每 bin 平均（該價位的典型水位）。傳回 [{level: bin中心, value: round(平均)}]。"""
+def _profile_by_price(val, taiex, start, how="sum"):
+    """把逐日序列 val(date-indexed) 依當日 taiex 點位 bin 到 PROFILE_BIN 聚合。
+    how='sum'＝累加（流量／各價位「分配」到的量，如 Δ融資、Δ淨部位，volume-profile 同理）；
+    how='mean'＝取平均（水位）。傳回 [{level: bin中心, value: round(聚合)}]。"""
     if val is None or len(val) == 0:
         return []
     df = pd.DataFrame({"date": pd.DatetimeIndex(val.index),
@@ -244,8 +245,9 @@ def _profile_by_price(val, taiex, start):
     if df.empty:
         return []
     df["bin"] = (df["price"] // PROFILE_BIN) * PROFILE_BIN + PROFILE_BIN / 2
-    agg = df.groupby("bin")["v"].mean().reset_index().sort_values("bin")
-    return [{"level": int(r["bin"]), "value": round(float(r["v"]))} for _, r in agg.iterrows()]
+    g = df.groupby("bin")["v"]
+    out = (g.sum() if how == "sum" else g.mean()).reset_index().sort_values("bin")
+    return [{"level": int(r["bin"]), "value": round(float(r["v"]))} for _, r in out.iterrows()]
 
 
 def foreign_net_series(fut):
@@ -267,19 +269,21 @@ def foreign_net_series(fut):
 
 
 def margin_profile(margin, taiex):
-    """融資餘額地圖：每日融資餘額（億）依當日 taiex 點位 bin 到 500 點、取每 bin 平均（典型水位）。
-    傳回 [{level: bin中心, value: 融資餘額億}]。融資餘額恆正。"""
+    """融資地圖：每日融資餘額（億）的當日淨變化(Δ)，依當日 taiex 點位 bin 到 500 點「累加」。
+    呈現槓桿資金在「各價位帶」的分配／進出（非市場總量）。value>0＝該價位帶融資淨增（散戶加碼槓桿）、
+    <0＝淨減（去槓桿／斷頭）。傳回 [{level: bin中心, value: 淨Δ融資億}]。"""
     mm = margin[margin["name"] == "MarginPurchaseMoney"].copy()
     bal = pd.Series(pd.to_numeric(mm["TodayBalance"], errors="coerce").values / 1e8,
                     index=pd.DatetimeIndex(mm["date"]))
     bal = bal[~bal.index.duplicated()].sort_index()
-    return _profile_by_price(bal, taiex, PROFILE_MARGIN_START)
+    return _profile_by_price(bal.diff(), taiex, PROFILE_MARGIN_START, "sum")
 
 
 def foreign_short_profile(fut, taiex):
-    """外資期貨淨部位地圖：外資淨部位（口, 大台等值, 多−空）依當日 taiex 點位 bin 到 500 點、取每 bin 平均。
-    value>0 該價位典型淨多、<0 典型淨空。傳回 [{level: bin中心, value: 淨部位口}]。"""
-    return _profile_by_price(foreign_net_series(fut), taiex, PROFILE_FUTURES_START)
+    """外資期貨淨部位地圖（同融資地圖邏輯）：外資淨部位（口, 大台等值, 多−空）的當日淨變化(Δ)，
+    依當日 taiex 點位 bin 到 500 點「累加」。value>0＝該價位帶外資淨加多（或回補空）、
+    <0＝淨加空（或減多）。傳回 [{level: bin中心, value: 淨Δ部位口}]。"""
+    return _profile_by_price(foreign_net_series(fut).diff(), taiex, PROFILE_FUTURES_START, "sum")
 
 
 def divergence_calc(Dser, Hser):
