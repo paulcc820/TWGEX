@@ -297,7 +297,7 @@
 
     cB=LC.createChart(document.getElementById('panel-gex'),{...common,width:W(),height:150});
     gexSeries=cB.addAreaSeries({topColor:'rgba(159,47,45,0.18)',bottomColor:'rgba(159,47,45,0.02)',lineColor:'#9F2F2D',lineWidth:1,priceFormat:{type:'price',precision:1,minMove:0.1}});
-    gexSeries.setData(pair(d.dates,d.gex_total));
+    gexSeries.setData(pair(d.dates,d.gex_disp));
     gexSeries.createPriceLine({price:0,color:'#B5B2AA',lineWidth:1,lineStyle:LC.LineStyle.Solid,axisLabelVisible:false});
 
     cC=LC.createChart(document.getElementById('panel-smart'),{...common,width:W(),height:120});
@@ -430,8 +430,8 @@
     const pkc=profileMode==='margin'?(peak.value>=0?'#346538':'#9F2F2D'):(peak.value>=0?'#1F6C9F':'#C2452F');
     label(right-pw-6,peak.y+3,profileMode==='margin'?'融資':'外資',pkc);
     if(leg)leg.innerHTML=profileMode==='margin'
-      ?'<span style="color:#346538">▌</span>淨增 <span style="color:#9F2F2D">▌</span>淨減　融資(依價位)'
-      :'<span style="color:#1F6C9F">▌</span>淨加多 <span style="color:#C2452F">▌</span>淨加空　外資(依價位)';
+      ?'<span style="color:#346538">▌</span>淨增 <span style="color:#9F2F2D">▌</span>淨減　融資Δ(千股/格)'
+      :'<span style="color:#1F6C9F">▌</span>淨加多 <span style="color:#C2452F">▌</span>淨加空　外資期Δ(口/格)';
   }
 
   function smoothGEX(n){
@@ -485,19 +485,23 @@
     if(!g||isNaN(g)){el.textContent='最後更新 '+last; return;}
     const mins=Math.max(1,Math.round((Date.now()-g.getTime())/60000));
     const rel=mins<60?mins+' 分鐘前':mins<1440?Math.floor(mins/60)+' 小時前':Math.floor(mins/1440)+' 天前';
-    if(mins>36*60){el.classList.add('stale-txt');el.innerHTML='<span class="live-dot stale"></span>資料可能未更新 · 最後 '+last;}
+    // data_as_of = 最後交易日；若距今超過 4 個交易日（約含週末）才標 stale
+    const dao=d.meta&&d.meta.data_as_of;
+    const dataAge=dao?Math.round((Date.now()-new Date(dao+'T00:00:00Z').getTime())/86400000):0;
+    const isStale=mins>36*60||dataAge>4;
+    if(isStale){el.classList.add('stale-txt');el.innerHTML='<span class="live-dot stale"></span>資料可能未更新 · 最後 '+last;}
     else{el.classList.remove('stale-txt');el.innerHTML='<span class="live-dot"></span>資料更新於 '+rel+' · '+last;}
   }
   function snapshot(d){
     const last=a=>{for(let i=a.length-1;i>=0;i--)if(a[i]!=null)return a[i];return null;};
     document.getElementById('s-taiex').textContent=fmt(last(d.taiex));
     document.getElementById('s-vol').textContent=(v=>v==null?'—':fmt(Math.round(v))+'億')(last(d.taiex_turnover_bn||[]));
-    document.getElementById('s-gex').textContent=(v=>v==null?'—':v.toFixed(1)+'B')(last(d.gex_total));
+    // s-gex 由 smoothGEX() 統一設定，此處略過
     document.getElementById('s-smart').textContent=(v=>v==null?'—':v.toFixed(1))(last(d.smart_money));
     document.getElementById('s-margin').textContent=(v=>v==null?'—':fmt(Math.round(v))+'億')(last(d.margin_bal||[]));
     document.getElementById('s-marginchg').textContent=(v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'億')(last(d.margin_chg||[]));
     setFreshness(d);
-    if(d.meta&&d.meta.gex_since)document.getElementById('gex-since').textContent='← GEX 資料自 '+d.meta.gex_since+' 起（大盤自 2010 起）';
+    if(d.meta&&d.meta.gex_since)document.getElementById('gex-since').textContent='← GEX 資料自 '+d.meta.gex_since+' 起（大盤自 '+(d.meta.taiex_since||'').slice(0,4)+' 起）';
     // dealer-sign 方向註記見「說明」頁
   }
 

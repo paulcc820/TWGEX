@@ -200,7 +200,7 @@ def retail_heat_series(taiex, inst, margin, fut, idx):
                         index=tot["date"]).sort_index()
     retail_pressure = turnover - tot_net.reindex(turnover.index).abs()
     mm = margin[margin["name"] == "MarginPurchaseMoney"]
-    margin_chg = pd.Series(mm["TodayBalance"].astype(float).values, index=mm["date"]).sort_index().diff()
+    margin_chg = pd.Series(pd.to_numeric(mm["TodayBalance"], errors="coerce").values, index=mm["date"]).sort_index().diff()
     # 散戶期貨方向（零和倒推）：散戶 = −(外資 + 投信 + 自營商) 期貨淨額
     # 註：投信「期貨」屬基金避險仍留法人側扣除；只有投信「現貨」歸散戶
     retail_fut = -(_fut_net(fut, "外資").add(_fut_net(fut, "投信"), fill_value=0)
@@ -379,6 +379,7 @@ def build_series():
     out = {
         "meta": {
             "generated_at": pd.Timestamp.now(tz="UTC").isoformat(),
+            "data_as_of": dates[-1],
             "taiex_since": dates[0],
             "gex_since": gex_since,
             "smart_money_since": sm_since,
