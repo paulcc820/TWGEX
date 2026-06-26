@@ -289,7 +289,7 @@
       handleScroll:false,handleScale:false,crosshair:{mode:LC.CrosshairMode.Normal}};
     const W=()=>document.getElementById('panel-taiex').clientWidth;
 
-    cA=LC.createChart(document.getElementById('panel-taiex'),{...common,width:W(),height:320});
+    cA=LC.createChart(document.getElementById('panel-taiex'),{...common,width:W(),height:420});
     taiexS=cA.addLineSeries({color:'#1A1A18',lineWidth:1.5,priceFormat:{type:'price',precision:0,minMove:1}});
     taiexS.setData(pair(d.dates,d.taiex));
     volS=cA.addHistogramSeries({color:'rgba(110,107,99,0.34)',priceScaleId:'vol',priceFormat:{type:'volume'},lastValueVisible:false,priceLineVisible:false});
@@ -380,7 +380,7 @@
       if(bins[b]<=0)continue;
       const pc=pmin+(b+0.5)*binH;
       const y=taiexS.priceToCoordinate(pc);if(y==null)continue;
-      const w=bins[b]/maxv*maxBar, h=Math.max(2,(320/(pmax-pmin))*binH*0.86);
+      const w=bins[b]/maxv*maxBar, h=Math.max(2,(420/(pmax-pmin))*binH*0.86);
       const r=document.createElementNS(SVGNS,'rect');
       r.setAttribute('x',right-w);r.setAttribute('y',y-h/2);r.setAttribute('width',w);r.setAttribute('height',h);
       r.setAttribute('fill','#1F6C9F');r.setAttribute('opacity', b===bins.indexOf(maxv)?'0.46':'0.28');
@@ -430,7 +430,7 @@
       },230);
     }
     const dpr=window.devicePixelRatio||1;
-    const H=document.getElementById('panel-taiex').clientHeight||320;
+    const H=document.getElementById('panel-taiex').clientHeight||420;
     canvas.style.width=W+'px'; canvas.style.height=H+'px';
     canvas.width=Math.max(1,W*dpr); canvas.height=H*dpr;
     const ctx=canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
