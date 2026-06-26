@@ -310,7 +310,7 @@ def build_series():
 
     out = {
         "meta": {
-            "generated_at": pd.Timestamp.now().isoformat(),
+            "generated_at": pd.Timestamp.now(tz="UTC").isoformat(),
             "taiex_since": dates[0],
             "gex_since": gex_since,
             "smart_money_since": sm_since,

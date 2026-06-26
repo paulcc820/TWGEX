@@ -50,7 +50,11 @@
   nav a.active{color:var(--ink);border-bottom:1px solid var(--ink);padding-bottom:2px;}
   .lang{font-family:var(--mono);font-size:12px;color:var(--faint);} .lang a.on{color:var(--ink);}
   .h1{font-family:var(--serif);font-size:25px;font-weight:500;margin:0 0 4px;}
-  .updated{font-family:var(--mono);font-size:12px;color:var(--faint);margin-bottom:14px;}
+  .updated{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:14px;}
+  .updated.stale-txt{color:var(--amber);}
+  .live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:middle;animation:livePulse 2s ease-in-out infinite;}
+  .live-dot.stale{background:var(--amber);animation:none;}
+  @keyframes livePulse{0%{box-shadow:0 0 0 0 rgba(52,101,56,.5);}70%{box-shadow:0 0 0 5px rgba(52,101,56,0);}100%{box-shadow:0 0 0 0 rgba(52,101,56,0);}}
   .controls{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
   .tfbar,.toggles{display:flex;gap:8px;flex-wrap:wrap;}
   .tf,.tg{font-family:var(--mono);font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
@@ -423,6 +427,17 @@
     requestAnimationFrame(drawProfile);
   }
 
+  function setFreshness(d){
+    const el=document.getElementById('updated'); if(!el)return;
+    const last=d.dates[d.dates.length-1];
+    const ga=d.meta&&d.meta.generated_at;
+    const g=ga?new Date(/[Z+]/.test(ga)?ga:ga+'Z'):null;   // generated_at is UTC
+    if(!g||isNaN(g)){el.textContent='Updated '+last; return;}
+    const mins=Math.max(1,Math.round((Date.now()-g.getTime())/60000));
+    const rel=mins<60?mins+' min ago':mins<1440?Math.floor(mins/60)+' hr ago':Math.floor(mins/1440)+' d ago';
+    if(mins>36*60){el.classList.add('stale-txt');el.innerHTML='<span class="live-dot stale"></span>Data may be out of date · last '+last;}
+    else{el.classList.remove('stale-txt');el.innerHTML='<span class="live-dot"></span>Updated '+rel+' · '+last;}
+  }
   function snapshot(d){
     const last=a=>{for(let i=a.length-1;i>=0;i--)if(a[i]!=null)return a[i];return null;};
     document.getElementById('s-taiex').textContent=fmt(last(d.taiex));
@@ -430,7 +445,7 @@
     document.getElementById('s-smart').textContent=(v=>v==null?'—':v.toFixed(1))(last(d.smart_money));
     document.getElementById('s-margin').textContent=(v=>v==null?'—':'NT$'+fmt(Math.round(v/10))+'B')(last(d.margin_bal||[]));
     document.getElementById('s-marginchg').textContent=(v=>v==null?'—':(v>=0?'+NT$':'−NT$')+Math.abs(v/10).toFixed(1)+'B')(last(d.margin_chg||[]));
-    document.getElementById('updated').textContent='Updated '+d.dates[d.dates.length-1];
+    setFreshness(d);
     if(d.meta&&d.meta.gex_since)document.getElementById('gex-since').textContent='← GEX data since '+d.meta.gex_since+' (index since 2010)';
     // dealer-sign note lives on the Methodology page
   }
