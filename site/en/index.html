@@ -195,8 +195,8 @@
 
   <div class="controls">
     <div class="tfbar">
-      <button class="tf" data-tf="6m">6M</button>
-      <button class="tf active" data-tf="2y">2Y</button>
+      <button class="tf active" data-tf="6m">6M</button>
+      <button class="tf" data-tf="2y">2Y</button>
       <button class="tf" data-tf="max">All</button>
     </div>
     <div class="toggles" id="toggles">
@@ -356,7 +356,7 @@
     window.addEventListener('resize',()=>{charts.forEach(c=>c.applyOptions({width:W()}));requestAnimationFrame(drawProfile);requestAnimationFrame(drawPriceProfile);});
     smoothGEX(10);
     setSmart('foreign');
-    setTF('2y');
+    setTF('6m');
   }
 
   function drawProfile(){
