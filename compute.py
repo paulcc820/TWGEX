@@ -34,6 +34,9 @@ NEAR_EXPIRY_CUTOFF_DAYS = 2       # 只剔結算日（dte<2）的死合約
 GAMMA_TENOR_FLOOR_DAYS = 12       # gamma 用的到期時間地板：壓掉 T→0 的 1/√T 暴衝（IV 仍用真實 T 解）
 SERIES_START = "2019-01-01"     # 序列起點（控制 JSON 大小；三大法人期貨自 2018 起）
 GEX_START = "2024-01-01"        # GEX 回算起點（txo_daily 有 2018+，先 bound 控制 runtime）
+PROFILE_BIN = 500               # price profile bin 寬（點）
+PROFILE_MARGIN_START = "2019-01-01"   # 融資地圖起點
+PROFILE_FUTURES_START = "2018-01-01"  # 外資期貨地圖起點（期貨資料自 2018）
 EPS = 1e-6
 
 
@@ -226,6 +229,66 @@ def retail_dir_series(fut, idx):
     return (1 + pr(retail_net).reindex(idx) * 9).round(2)
 
 
+def margin_profile(margin, taiex):
+    """融資橫向量地圖：每日 Δ融資（口數）× 當日 taiex，累積到 500 點 bin。
+    傳回 [{level: bin中心點, delta: 累積Δ融資口數}, ...] 已排序。
+    只用 PROFILE_MARGIN_START 之後且有對應 taiex 的交易日。"""
+    mp = margin[margin["name"] == "MarginPurchase"].copy()
+    mp = mp[mp["date"] >= pd.Timestamp(PROFILE_MARGIN_START)]
+    mp = mp.sort_values("date").reset_index(drop=True)
+    # Δ融資 = TodayBalance - YesBalance（口數，當日淨增減）
+    # 用 errors='coerce' 防止空字串或非數字欄位造成整個 pipeline crash
+    mp["delta"] = pd.to_numeric(mp["TodayBalance"], errors="coerce") - pd.to_numeric(mp["YesBalance"], errors="coerce")
+    mp = mp.dropna(subset=["delta"])  # 過濾無法計算的行
+
+    tx = taiex[["date", "taiex"]].copy()
+    tx = tx.rename(columns={"taiex": "price"})
+    merged = mp.merge(tx, on="date", how="inner")
+    if merged.empty:
+        return []
+
+    # bin：以 PROFILE_BIN 為步長，floor to nearest bin center
+    merged["bin"] = (merged["price"] // PROFILE_BIN) * PROFILE_BIN + PROFILE_BIN / 2
+    agg = merged.groupby("bin")["delta"].sum().reset_index()
+    agg = agg.sort_values("bin")
+    return [{"level": int(row["bin"]), "delta": round(float(row["delta"]))} for _, row in agg.iterrows()]
+
+
+def foreign_short_profile(fut, taiex):
+    """外資期貨空單地圖：每日外資（臺指+小型臺指×1/4）net_oi 變動，累積到 500 點 bin。
+    net_oi 負值表示外資空頭佔優（short > long）。
+    注意：取 net_oi 的日差（Δnet_oi）代表每日增減動作。
+    傳回 [{level: bin中心點, delta: 累積Δnet_oi}, ...]。"""
+    fgn = fut[fut["role"] == "外資"].copy()
+    fgn = fgn[fgn["date"] >= pd.Timestamp(PROFILE_FUTURES_START)]
+
+    big = fgn[fgn["product"] == "臺股期貨"][["date", "net_oi"]].copy()
+    big = big.rename(columns={"net_oi": "big_net"})
+    mini = fgn[fgn["product"] == "小型臺指"][["date", "net_oi"]].copy()
+    mini = mini.rename(columns={"net_oi": "mini_net"})
+
+    # 合併大台與小台（小台÷4換算大台口數）
+    combined = big.merge(mini, on="date", how="outer")
+    combined["big_net"] = combined["big_net"].fillna(0)
+    combined["mini_net"] = combined["mini_net"].fillna(0)
+    combined["net_combined"] = combined["big_net"] + combined["mini_net"] / 4.0
+    combined = combined.sort_values("date").reset_index(drop=True)
+    # 取日差（每日增減動作）
+    combined["delta"] = combined["net_combined"].diff()
+    combined = combined.dropna(subset=["delta"])
+
+    tx = taiex[["date", "taiex"]].copy()
+    tx = tx.rename(columns={"taiex": "price"})
+    merged = combined.merge(tx, on="date", how="inner")
+    if merged.empty:
+        return []
+
+    merged["bin"] = (merged["price"] // PROFILE_BIN) * PROFILE_BIN + PROFILE_BIN / 2
+    agg = merged.groupby("bin")["delta"].sum().reset_index()
+    agg = agg.sort_values("bin")
+    return [{"level": int(row["bin"]), "delta": round(float(row["delta"]), 1)} for _, row in agg.iterrows()]
+
+
 def divergence_calc(Dser, Hser):
     """恐慌背離＝散戶熱 − 聰明錢熱（線性差值）。
     乘積公式在 d=0（聰明錢中性）時退化為固定 50，故改線性差值。
@@ -282,6 +345,8 @@ def build_series():
 
     # 散戶熱度 + 過熱/過冷計（恐慌計頁用）
     margin = _read("margin_total.csv")
+    # 讀取完整 taiex（含 2018 之前，供 profile 用）
+    taiex_full = _read("taiex_daily.csv")
     retail = retail_heat_series(taiex, inst, margin, fut, idx)
     retail_dir = retail_dir_series(fut, idx)
     mm = margin[margin["name"] == "MarginPurchaseMoney"]
@@ -290,6 +355,10 @@ def build_series():
     mbal = mbal[~mbal.index.duplicated()].sort_index().reindex(idx)
     margin_bal = mbal.round(1)          # 融資餘額（億）
     margin_chg = mbal.diff().round(2)   # 融資日變動（億）
+    # 橫向量地圖（price profile）
+    mprofile = margin_profile(margin, taiex_full)
+    fprofile = foreign_short_profile(fut, taiex_full)
+
     div, gauge = divergence_calc(sm["foreign"], retail)
     rh, fg = nn(retail), nn(gauge)
     def _lastv(arr):
@@ -339,6 +408,8 @@ def build_series():
         "margin_chg": nn(margin_chg),
         "fear_gauge": fg,
         "hv21_proxy": nn(hv21),
+        "margin_profile": mprofile,
+        "foreign_short_profile": fprofile,
     }
     return out
 
