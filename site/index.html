@@ -116,7 +116,7 @@
   @media (max-width:560px){.axes{grid-template-columns:1fr;} .gauge-score{font-size:40px;} .view-switch{margin:10px auto 0;}}
   /* Price profile：右側 overlay，與量價分布(價值區)同 Y 對齊 */
   #profile-canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5;}
-  #profile-legend{position:absolute;top:8px;right:64px;font-family:var(--mono);font-size:9px;color:var(--faint);pointer-events:none;z-index:6;}
+  #profile-legend{position:absolute;bottom:6px;left:12px;font-family:var(--mono);font-size:9px;color:var(--faint);pointer-events:none;z-index:6;}
   /* 固定底部錨定廣告 anchor ad（隨頁面固定於底部） */
   body{padding-bottom:84px;}
   #anchor-ad{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;justify-content:center;background:rgba(247,246,243,.94);backdrop-filter:saturate(1.05) blur(8px);-webkit-backdrop-filter:saturate(1.05) blur(8px);border-top:1px solid var(--border);padding:9px 12px;}
@@ -206,7 +206,7 @@
       <button class="tg on" data-k="rdir"><span class="dot"></span>散戶方向</button>
       <button class="tg on" data-k="vix"><span class="dot"></span>台VIX</button>
       <button class="tg" data-k="margin_profile"><span class="dot"></span>融資地圖</button>
-      <button class="tg" data-k="foreign_short_profile"><span class="dot"></span>外資期Δ</button>
+      <button class="tg" data-k="foreign_short_profile"><span class="dot"></span>外資淨部位</button>
     </div>
   </div>
 
@@ -319,8 +319,10 @@
     const t2s=t=>typeof t==='string'?t:(t&&t.year?`${t.year}-${String(t.month).padStart(2,'0')}-${String(t.day).padStart(2,'0')}`:null);
     function updateLegend(i){
       const el=document.getElementById('panelA-legend'); if(!el)return;
-      const j=(i==null)?(d.taiex.length-1):i; const vol=d.taiex_turnover_bn[j];
-      el.innerHTML=`${d.dates[j]} · 加權 <b>${fmt(d.taiex[j])}</b> · 量 ${vol!=null?fmt(Math.round(vol))+'億':'—'}`;
+      const j=(i==null)?(d.taiex.length-1):i;
+      const vol=d.taiex_turnover_bn[j], mb=(d.margin_bal||[])[j], fn=(d.foreign_net||[])[j];
+      const fnTxt=(fn==null)?'—':((fn>0?'+':'')+fmt(Math.round(fn))+'口');
+      el.innerHTML=`${d.dates[j]} · 加權 <b>${fmt(d.taiex[j])}</b> · 量 ${vol!=null?fmt(Math.round(vol))+'億':'—'} · 融資 ${mb!=null?fmt(mb)+'億':'—'} · 外資淨部位 <b>${fnTxt}</b>`;
     }
     updateLegend(null);
     let syncing=false;
@@ -404,36 +406,33 @@
     canvas.width=Math.max(1,cw*dpr); canvas.height=H*dpr;   // 實體像素×dpr，Retina 不糊
     const ctx=canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,cw,H);
     if((!showMargin&&!showForeign)||!D)return;
-    const BIN=500; // 與 compute.py PROFILE_BIN 一致
-    const scaleW=(cA.priceScale('right').width?cA.priceScale('right').width():56)||56;
-    const volZone=Math.min(150,(cw-scaleW)*0.32);   // 量價分布(價值區)占的寬，與 drawProfile 一致
-    const colW=46;                                   // 每個 profile 欄寬
-    // priceToCoordinate 與主圖/量價分布同 Y 對齊；每條 bin 各自算高度(吃 zoom)；自右錨往左畫
-    function renderBars(profile, colorPos, colorNeg, rightAnchor){
+    const BIN=500, colW=46;   // BIN 與 compute.py PROFILE_BIN 一致；每欄寬
+    // priceToCoordinate 與主圖同 Y 對齊；每條 bin 各自算高度(吃 zoom)；自左錨往右畫
+    function renderBars(profile, colorPos, colorNeg, leftAnchor){
       if(!profile||!profile.length)return;
       const visible=[];
       for(const b of profile){const y=taiexS.priceToCoordinate(b.level);if(y==null||y<0||y>H)continue;visible.push({...b,y});}
       if(!visible.length)return;
-      const maxAbs=Math.max(...visible.map(b=>Math.abs(b.delta)));
+      const maxAbs=Math.max(...visible.map(b=>Math.abs(b.value)));
       if(maxAbs<=0)return;
       visible.forEach(b=>{
         const yTop=taiexS.priceToCoordinate(b.level+BIN/2), yBot=taiexS.priceToCoordinate(b.level-BIN/2);
         let binPx=(yTop!=null&&yBot!=null)?Math.abs(yBot-yTop):8; binPx=Math.max(2,Math.min(binPx*0.86,40));
-        const barW=Math.abs(b.delta)/maxAbs*(colW-4);
-        ctx.globalAlpha=0.6; ctx.fillStyle=b.delta>=0?colorPos:colorNeg;
-        ctx.fillRect(rightAnchor-barW, b.y-binPx/2, barW, binPx);
+        const barW=Math.abs(b.value)/maxAbs*(colW-4);
+        ctx.globalAlpha=0.6; ctx.fillStyle=b.value>=0?colorPos:colorNeg;
+        ctx.fillRect(leftAnchor, b.y-binPx/2, barW, binPx);
       });
       ctx.globalAlpha=1;
     }
-    // 排在量價分布(右側)左邊、與其同 Y 對齊：外資最左、融資次之
-    let anchor=(cw-scaleW-2)-volZone-8;
-    if(showForeign){ renderBars(D.foreign_short_profile,'#1F6C9F','#C2452F',anchor); anchor-=colW+6; }
-    if(showMargin){ renderBars(D.margin_profile,'#346538','#9F2F2D',anchor); }
+    // 左側、與主圖同 Y 對齊：融資最左、外資次之（自左緣往右畫）
+    let anchor=2;
+    if(showMargin){ renderBars(D.margin_profile,'#346538','#9F2F2D',anchor); anchor+=colW+6; }
+    if(showForeign){ renderBars(D.foreign_short_profile,'#1F6C9F','#C2452F',anchor); }
     const leg=document.getElementById('profile-legend');
     if(leg){
       const parts=[];
-      if(showMargin)parts.push('<span style="color:#346538">▌</span><span style="color:#9F2F2D">▌</span>融資±');
-      if(showForeign)parts.push('<span style="color:#1F6C9F">▌</span><span style="color:#C2452F">▌</span>外資期Δ');
+      if(showMargin)parts.push('<span style="color:#346538">▌</span>融資餘額');
+      if(showForeign)parts.push('<span style="color:#1F6C9F">▌</span><span style="color:#C2452F">▌</span>外資淨部位');
       leg.innerHTML=parts.join('　');
     }
   }

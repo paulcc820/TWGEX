@@ -76,7 +76,7 @@
   #vp-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:4;}
   /* Price profile: right-side overlay, Y-aligned with the volume profile */
   #profile-canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5;}
-  #profile-legend{position:absolute;top:8px;right:64px;font-family:var(--mono);font-size:9px;color:var(--faint);pointer-events:none;z-index:6;}
+  #profile-legend{position:absolute;bottom:6px;left:12px;font-family:var(--mono);font-size:9px;color:var(--faint);pointer-events:none;z-index:6;}
   a[id^="tv-attr-logo"]{display:none!important;}
   .snap{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:18px 0 22px;}
   .snap > div{background:var(--surface);padding:14px 18px;}
@@ -206,7 +206,7 @@
       <button class="tg on" data-k="rdir"><span class="dot"></span>Retail dir</button>
       <button class="tg on" data-k="vix"><span class="dot"></span>TWVIX</button>
       <button class="tg" data-k="margin_profile"><span class="dot"></span>Margin map</button>
-      <button class="tg" data-k="foreign_short_profile"><span class="dot"></span>Foreign fut Δ</button>
+      <button class="tg" data-k="foreign_short_profile"><span class="dot"></span>Foreign net</button>
     </div>
   </div>
 
@@ -318,8 +318,10 @@
     const t2s=t=>typeof t==='string'?t:(t&&t.year?`${t.year}-${String(t.month).padStart(2,'0')}-${String(t.day).padStart(2,'0')}`:null);
     function updateLegend(i){
       const el=document.getElementById('panelA-legend'); if(!el)return;
-      const j=(i==null)?(d.taiex.length-1):i; const vol=d.taiex_turnover_bn[j];
-      el.innerHTML=`${d.dates[j]} · TAIEX <b>${fmt(d.taiex[j])}</b> · vol ${vol!=null?'NT$'+fmt(Math.round(vol/10))+'B':'—'}`;
+      const j=(i==null)?(d.taiex.length-1):i;
+      const vol=d.taiex_turnover_bn[j], mb=(d.margin_bal||[])[j], fn=(d.foreign_net||[])[j];
+      const fnTxt=(fn==null)?'—':((fn>0?'+':'')+fmt(Math.round(fn))+' lots');
+      el.innerHTML=`${d.dates[j]} · TAIEX <b>${fmt(d.taiex[j])}</b> · vol ${vol!=null?'NT$'+fmt(Math.round(vol/10))+'B':'—'} · margin ${mb!=null?'NT$'+fmt(Math.round(mb/10))+'B':'—'} · foreign net <b>${fnTxt}</b>`;
     }
     updateLegend(null);
     let syncing=false;
@@ -419,36 +421,33 @@
     canvas.width=Math.max(1,cw*dpr); canvas.height=H*dpr;
     const ctx=canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,cw,H);
     if((!showMargin&&!showForeign)||!D)return;
-    const BIN=500; // matches PROFILE_BIN in compute.py
-    const scaleW=(cA.priceScale('right').width?cA.priceScale('right').width():56)||56;
-    const volZone=Math.min(150,(cw-scaleW)*0.32);   // width the value-area volume profile occupies
-    const colW=46;
-    // priceToCoordinate keeps the same Y as the chart / volume profile; per-bar height; drawn right-to-left
-    function renderBars(profile, colorPos, colorNeg, rightAnchor){
+    const BIN=500, colW=46;   // BIN matches PROFILE_BIN in compute.py; per-column width
+    // priceToCoordinate keeps the same Y as the chart; per-bar height (zoom-aware); drawn left-to-right
+    function renderBars(profile, colorPos, colorNeg, leftAnchor){
       if(!profile||!profile.length)return;
       const visible=[];
       for(const b of profile){const y=taiexS.priceToCoordinate(b.level);if(y==null||y<0||y>H)continue;visible.push({...b,y});}
       if(!visible.length)return;
-      const maxAbs=Math.max(...visible.map(b=>Math.abs(b.delta)));
+      const maxAbs=Math.max(...visible.map(b=>Math.abs(b.value)));
       if(maxAbs<=0)return;
       visible.forEach(b=>{
         const yTop=taiexS.priceToCoordinate(b.level+BIN/2), yBot=taiexS.priceToCoordinate(b.level-BIN/2);
         let binPx=(yTop!=null&&yBot!=null)?Math.abs(yBot-yTop):8; binPx=Math.max(2,Math.min(binPx*0.86,40));
-        const barW=Math.abs(b.delta)/maxAbs*(colW-4);
-        ctx.globalAlpha=0.6; ctx.fillStyle=b.delta>=0?colorPos:colorNeg;
-        ctx.fillRect(rightAnchor-barW, b.y-binPx/2, barW, binPx);
+        const barW=Math.abs(b.value)/maxAbs*(colW-4);
+        ctx.globalAlpha=0.6; ctx.fillStyle=b.value>=0?colorPos:colorNeg;
+        ctx.fillRect(leftAnchor, b.y-binPx/2, barW, binPx);
       });
       ctx.globalAlpha=1;
     }
-    // placed just left of the value-area profile, same Y: foreign leftmost, margin next
-    let anchor=(cw-scaleW-2)-volZone-8;
-    if(showForeign){ renderBars(D.foreign_short_profile,'#1F6C9F','#C2452F',anchor); anchor-=colW+6; }
-    if(showMargin){ renderBars(D.margin_profile,'#346538','#9F2F2D',anchor); }
+    // left side, same Y as the chart: margin leftmost, foreign next (drawn rightward from the left edge)
+    let anchor=2;
+    if(showMargin){ renderBars(D.margin_profile,'#346538','#9F2F2D',anchor); anchor+=colW+6; }
+    if(showForeign){ renderBars(D.foreign_short_profile,'#1F6C9F','#C2452F',anchor); }
     const leg=document.getElementById('profile-legend');
     if(leg){
       const parts=[];
-      if(showMargin)parts.push('<span style="color:#346538">▌</span><span style="color:#9F2F2D">▌</span>Margin ±');
-      if(showForeign)parts.push('<span style="color:#1F6C9F">▌</span><span style="color:#C2452F">▌</span>Foreign fut Δ');
+      if(showMargin)parts.push('<span style="color:#346538">▌</span>Margin bal');
+      if(showForeign)parts.push('<span style="color:#1F6C9F">▌</span><span style="color:#C2452F">▌</span>Foreign net');
       leg.innerHTML=parts.join('　');
     }
   }

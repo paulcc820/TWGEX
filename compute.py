@@ -229,61 +229,57 @@ def retail_dir_series(fut, idx):
     return (1 + pr(retail_net).reindex(idx) * 9).round(2)
 
 
-def margin_profile(margin, taiex):
-    """融資橫向量地圖：每日 Δ融資（口數）× 當日 taiex，累積到 500 點 bin。
-    傳回 [{level: bin中心點, delta: 累積Δ融資口數}, ...] 已排序。
-    只用 PROFILE_MARGIN_START 之後且有對應 taiex 的交易日。"""
-    mp = margin[margin["name"] == "MarginPurchase"].copy()
-    mp = mp[mp["date"] >= pd.Timestamp(PROFILE_MARGIN_START)]
-    mp = mp.sort_values("date").reset_index(drop=True)
-    # Δ融資 = TodayBalance - YesBalance（口數，當日淨增減）
-    # 用 errors='coerce' 防止空字串或非數字欄位造成整個 pipeline crash
-    mp["delta"] = pd.to_numeric(mp["TodayBalance"], errors="coerce") - pd.to_numeric(mp["YesBalance"], errors="coerce")
-    mp = mp.dropna(subset=["delta"])  # 過濾無法計算的行
-
-    tx = taiex[["date", "taiex"]].copy()
-    tx = tx.rename(columns={"taiex": "price"})
-    merged = mp.merge(tx, on="date", how="inner")
-    if merged.empty:
+def _profile_by_price(val, taiex, start):
+    """把逐日水位序列 val(date-indexed) 依當日 taiex 點位 bin 到 PROFILE_BIN，
+    取每 bin 平均（該價位的典型水位）。傳回 [{level: bin中心, value: round(平均)}]。"""
+    if val is None or len(val) == 0:
         return []
+    df = pd.DataFrame({"date": pd.DatetimeIndex(val.index),
+                       "v": pd.to_numeric(pd.Series(val.values), errors="coerce")})
+    df = df.dropna(subset=["v"])
+    if start:
+        df = df[df["date"] >= pd.Timestamp(start)]
+    tx = taiex[["date", "taiex"]].rename(columns={"taiex": "price"})
+    df = df.merge(tx, on="date", how="inner")
+    if df.empty:
+        return []
+    df["bin"] = (df["price"] // PROFILE_BIN) * PROFILE_BIN + PROFILE_BIN / 2
+    agg = df.groupby("bin")["v"].mean().reset_index().sort_values("bin")
+    return [{"level": int(r["bin"]), "value": round(float(r["v"]))} for _, r in agg.iterrows()]
 
-    # bin：以 PROFILE_BIN 為步長，floor to nearest bin center
-    merged["bin"] = (merged["price"] // PROFILE_BIN) * PROFILE_BIN + PROFILE_BIN / 2
-    agg = merged.groupby("bin")["delta"].sum().reset_index()
-    agg = agg.sort_values("bin")
-    return [{"level": int(row["bin"]), "delta": round(float(row["delta"]))} for _, row in agg.iterrows()]
 
-
-def foreign_short_profile(fut, taiex):
-    """外資期貨淨部位地圖：外資（大台 ＋ 小台×50/200 ＋ 微台×10/200）net_oi 的每日Δ，
-    依當日 taiex 點位累積到 500 點 bin。net_oi＝多單−空單；Δ 正＝當日淨加多、Δ 負＝淨加空。
-    與 _fut_net / retail_dir_series 同口徑（含微型臺指）。
-    傳回 [{level: bin中心, delta: 累積Δ淨口數(大台等值)}, ...]。"""
+def foreign_net_series(fut):
+    """外資期貨淨部位逐日 Series(date-indexed)：大台 ＋ 小台×50/200 ＋ 微台×10/200 的
+    net_oi（多單−空單）。>0 淨多、<0 淨空。與 _fut_net / retail_dir_series 同口徑（含微型臺指）。"""
     fgn = fut[fut["role"] == "外資"].copy()
     fgn = fgn[fgn["date"] >= pd.Timestamp(PROFILE_FUTURES_START)]
 
     def _prod(p, col):
         d = fgn[fgn["product"] == p][["date", "net_oi"]].copy()
         return d.rename(columns={"net_oi": col})
-    combined = (_prod("臺股期貨", "big")
-                .merge(_prod("小型臺指", "mini"), on="date", how="outer")
-                .merge(_prod("微型臺指", "micro"), on="date", how="outer"))
-    for c in ["big", "mini", "micro"]:                          # 防呆 + 缺資料補 0
-        combined[c] = pd.to_numeric(combined[c], errors="coerce").fillna(0)
-    combined["net_combined"] = (combined["big"]
-                                + combined["mini"] * MINI_WEIGHT
-                                + combined["micro"] * MICRO_WEIGHT)
-    combined = combined.sort_values("date").reset_index(drop=True)
-    combined["delta"] = combined["net_combined"].diff()        # 僅交易日序列，diff 不跨曆日缺口
-    combined = combined.dropna(subset=["delta"])
+    c = (_prod("臺股期貨", "big")
+         .merge(_prod("小型臺指", "mini"), on="date", how="outer")
+         .merge(_prod("微型臺指", "micro"), on="date", how="outer"))
+    for col in ["big", "mini", "micro"]:                        # 防呆 + 缺資料補 0
+        c[col] = pd.to_numeric(c[col], errors="coerce").fillna(0)
+    net = c["big"] + c["mini"] * MINI_WEIGHT + c["micro"] * MICRO_WEIGHT
+    return pd.Series(net.values, index=pd.DatetimeIndex(c["date"])).sort_index()
 
-    tx = taiex[["date", "taiex"]].rename(columns={"taiex": "price"})
-    merged = combined.merge(tx, on="date", how="inner")
-    if merged.empty:
-        return []
-    merged["bin"] = (merged["price"] // PROFILE_BIN) * PROFILE_BIN + PROFILE_BIN / 2
-    agg = merged.groupby("bin")["delta"].sum().reset_index().sort_values("bin")
-    return [{"level": int(row["bin"]), "delta": round(float(row["delta"]))} for _, row in agg.iterrows()]
+
+def margin_profile(margin, taiex):
+    """融資餘額地圖：每日融資餘額（億）依當日 taiex 點位 bin 到 500 點、取每 bin 平均（典型水位）。
+    傳回 [{level: bin中心, value: 融資餘額億}]。融資餘額恆正。"""
+    mm = margin[margin["name"] == "MarginPurchaseMoney"].copy()
+    bal = pd.Series(pd.to_numeric(mm["TodayBalance"], errors="coerce").values / 1e8,
+                    index=pd.DatetimeIndex(mm["date"]))
+    bal = bal[~bal.index.duplicated()].sort_index()
+    return _profile_by_price(bal, taiex, PROFILE_MARGIN_START)
+
+
+def foreign_short_profile(fut, taiex):
+    """外資期貨淨部位地圖：外資淨部位（口, 大台等值, 多−空）依當日 taiex 點位 bin 到 500 點、取每 bin 平均。
+    value>0 該價位典型淨多、<0 典型淨空。傳回 [{level: bin中心, value: 淨部位口}]。"""
+    return _profile_by_price(foreign_net_series(fut), taiex, PROFILE_FUTURES_START)
 
 
 def divergence_calc(Dser, Hser):
@@ -355,6 +351,8 @@ def build_series():
     # 橫向量地圖（price profile）
     mprofile = margin_profile(margin, taiex_full)
     fprofile = foreign_short_profile(fut, taiex_full)
+    fnet = foreign_net_series(fut).reindex(idx)
+    foreign_net = nn(fnet)              # 逐日外資淨部位（口, 大台等值；>0 淨多、<0 淨空），供游標讀數
 
     div, gauge = divergence_calc(sm["foreign"], retail)
     rh, fg = nn(retail), nn(gauge)
@@ -407,6 +405,7 @@ def build_series():
         "hv21_proxy": nn(hv21),
         "margin_profile": mprofile,
         "foreign_short_profile": fprofile,
+        "foreign_net": foreign_net,
     }
     return out
 
