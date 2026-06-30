@@ -55,7 +55,7 @@ jobs:
           else
             LAST=$(tail -1 data/market/taiex_daily.csv | cut -d',' -f1)
             git commit -m "data: CI 自動推進種子至 ${LAST}"
-            git push
+            git push origin HEAD:main
           fi
 
       - name: 計算 data.json
