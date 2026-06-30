@@ -137,7 +137,7 @@ def load_txo_groups(start_year):
     for y in range(start_year, 2027):
         fp = DATA_DIR / "txo_daily" / f"{y}.csv"
         if not fp.exists(): continue
-        df = pd.read_csv(fp)
+        df = pd.read_csv(fp, low_memory=False)
         df.columns = [c.lstrip("﻿").strip() for c in df.columns]
         df["date"] = pd.to_datetime(df["date"])
         df["expiry_date"] = pd.to_datetime(df["expiry_date"], errors="coerce")
