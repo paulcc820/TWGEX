@@ -11,7 +11,7 @@ on:
   workflow_dispatch: {}        # 也可在 Actions 頁面手動點「Run workflow」
 
 permissions:
-  contents: read
+  contents: write   # 允許 CI 把更新後的種子資料 commit 回 repo（自我維護，不需本機手動推）
   pages: write
   id-token: write
 
@@ -28,6 +28,8 @@ jobs:
     steps:
       - name: Checkout（含已提交的種子資料）
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -43,6 +45,19 @@ jobs:
           # 選配：到 Settings → Secrets → Actions 設 FINMIND_TOKEN 可提高速率；沒設也能匿名跑。
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
 
+      - name: 自動推進種子（CI 自我維護，不需本機 push）
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/market/
+          if git diff --cached --quiet; then
+            echo "種子無變動，略過 commit"
+          else
+            LAST=$(tail -1 data/market/taiex_daily.csv | cut -d',' -f1)
+            git commit -m "data: CI 自動推進種子至 ${LAST}"
+            git push
+          fi
+
       - name: 計算 data.json
         run: python compute.py
 
@@ -55,8 +70,7 @@ jobs:
         id: deploy
         uses: actions/deploy-pages@v4
 
-# 設計說明（無提交回寫 = 零 repo 膨脹、且能自我修復）：
+# 設計說明：
 #   每次都從「已提交的種子資料」全新開始 → 只補抓種子最後日期到今天的缺口 → 算完直接發布。
-#   不把抓回的資料 commit 回 repo，所以 git 歷史不會每天長大；某天某來源臨時失敗也不會污染種子，
-#   隔天重跑自動補回。缺點：種子若很久沒更新，每天要補抓的區間會變長（抓公開資料便宜，影響不大）。
-#   想讓每日跑得更快 → 偶爾在本機跑 `python fetch_market.py` 後把 data/ 重新 commit，推進種子即可。
+#   fetch 完成後自動把種子 commit 回 repo（contents: write）→ 下次只需補今天一天，永不需要本機介入。
+#   若某天 push 失敗（衝突等罕見情況），下次 CI 重新補抓，自動自癒。
