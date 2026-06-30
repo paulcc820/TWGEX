@@ -40,22 +40,27 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: 抓最新市場資料（增量：種子最後日期 → 今天）
-        run: python fetch_market.py
+        run: |
+          SEED_LAST=$(tail -1 data/market/taiex_daily.csv | cut -d',' -f1)
+          echo "SEED_LAST=$SEED_LAST" >> $GITHUB_ENV
+          python fetch_market.py
+          FETCH_LAST=$(tail -1 data/market/taiex_daily.csv | cut -d',' -f1)
+          echo "FETCH_LAST=$FETCH_LAST" >> $GITHUB_ENV
         env:
           # 選配：到 Settings → Secrets → Actions 設 FINMIND_TOKEN 可提高速率；沒設也能匿名跑。
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
 
       - name: 自動推進種子（CI 自我維護，不需本機 push）
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/market/
-          if git diff --cached --quiet; then
-            echo "種子無變動，略過 commit"
+          if [ "$SEED_LAST" = "$FETCH_LAST" ]; then
+            echo "無新資料（種子已在 $SEED_LAST），略過 commit"
           else
-            LAST=$(tail -1 data/market/taiex_daily.csv | cut -d',' -f1)
-            git commit -m "data: CI 自動推進種子至 ${LAST}"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add data/market/
+            git commit -m "data: CI 自動推進種子至 ${FETCH_LAST}"
             git push origin HEAD:main
+            echo "✓ 種子推進：$SEED_LAST → $FETCH_LAST"
           fi
 
       - name: 計算 data.json
